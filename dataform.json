@@ -1,4 +1,5 @@
 {
-    "defaultSchema": "dataform",
-    "assertionSchema": "dataform_assertions"
+    "defaultSchema": "PUBLIC",
+    "assertionSchema": "dataform_assertions",
+    "warehouse": "snowflake"
 }

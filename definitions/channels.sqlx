@@ -1,0 +1,4 @@
+create table if not exists public.channel_stage (v Variant)
+---
+copy into public.channel_stage from @public.yt/channels
+file_format=(type=json)
