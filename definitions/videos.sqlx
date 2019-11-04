@@ -1,4 +1,33 @@
-create table if not exists public.video_stage (v Variant)
----
-copy into public.video_stage from @public.yt/videos
-file_format=(type=json)
+config {
+  type: "incremental"
+}
+
+SELECT
+  v :VideoId as video_id,
+  v :Title as video_title,
+  v :ChannelId as channel_id,
+  v :ChannelTitle as channel_title,
+  v :UploadDate :: timestamp_ntz as upload_date,
+  v :Statistics :ViewCount :: int as views,
+  v :Statistics :AverageRating :: float as avg_rating,
+  v :Statistics :LikeCount :: int as likes,
+  v :Statistics :DislikeCount :: int as dislikes,
+  v :Description as description,
+  v :Duration :: time as duration,
+  v :Keywords :: Array as keywords,
+  v :Thumbnails :HighResUrl as thumb_high,
+  v :Thumbnails :StandardResUrl as thumb_standard,
+  v :Thumbnails :LowResUrl as thumb_low,
+  coalesce(v :Updated, '2019-11-02 13:50:00') :: timestamp_ntz as updated
+FROM
+  video_stage
+
+incremental_where {
+  WHERE
+    Updated > (
+      SELECT
+        MAX(Updated)
+      FROM
+        ${self()}
+    )
+}
