@@ -1,4 +1,0 @@
-create table if not exists public.video_stage (v Variant)
----
-copy into public.video_stage from @public.yt/videos
-file_format=(type=json)

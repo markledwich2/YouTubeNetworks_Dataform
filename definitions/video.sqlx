@@ -20,11 +20,10 @@ SELECT
   v :Thumbnails :LowResUrl as thumb_low,
   coalesce(v :Updated, '2019-11-02 13:50:00') :: timestamp_ntz as updated
 FROM
-  video_stage
+  ${ref("video_stage")}
 
 incremental_where {
-  WHERE
-    Updated > (
+  updated > (
       SELECT
         MAX(Updated)
       FROM

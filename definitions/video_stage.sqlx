@@ -1,0 +1,5 @@
+config { hasOutput: true}
+
+${stage.create(self())}
+---
+${stage.copy(self(), "videos")}
