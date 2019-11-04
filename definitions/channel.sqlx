@@ -1,27 +1,28 @@
 config {
-  type: "incremental"
+  type: "table"
 }
 
+with s as (
+  select
+    v :ChannelId as channel_id,
+    v :ChannelTitle as channel_title,
+    v :LogoUrl as logo_url,
+    v :Relevance :: float as relevance,
+    v :LR as lr,
+    v :Subs :: int as subs,
+    v :HardTags as hard_tags,
+    v :SoftTags as soft_tags,
+    v :SheetIds as sheet_ids,
+    v :Updated :: timestamp_ntz as updated,
+    v :StatusMessage as status_msg
+  from
+    ${ref("channel_stage")}
+)
 select
-  v :ChannelId as channel_id,
-  v :ChannelTitle as channel_title,
-  v :LogoUrl as logo_url,
-  v :Relevance::float as relevance,
-  v :LR as lr,
-  v :Subs::int as subs,
-  v :HardTags as hard_tags,
-  v :SoftTags as soft_tags,
-  v :SheetIds as sheet_ids,
-  v :Updated::timestamp_ntz as updated,
-  v :StatusMessage as status_msg
-from
-  ${ref("channel_stage")}
-
-incremental_where {
-    updated > (
-      SELECT
-        MAX(date)
-      FROM
-        ${self()}
-    )
-}
+  s.*,
+  row_number() over (
+    partition by channel_id
+    order by
+      UPDATED desc
+  ) as age
+from s

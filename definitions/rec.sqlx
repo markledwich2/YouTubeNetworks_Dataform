@@ -1,16 +1,27 @@
-config { type: "incremental" }
-
-select 
-v:FromChannelId as from_channel_id,
-v:FromVideoId as form_video_id,
-v:FromVideoTitle as from_video_title,
-v:ToChannelTitle as to_channel_title,
-v:ToVideoId as to_video_id,
-v:ToVideoTitle as to_video_title,
-iff(v:Updated like '0001-01-01%', '2019-11-02 13:50:00',  v:Updated)::timestamp_ntz as updated
-from ${ref("rec_stage")}
-
-incremental_where {
-  updated > (SELECT MAX(date) FROM ${self()})
+config {
+  type: "incremental"
 }
 
+select
+  v :FromChannelId as from_channel_id,
+  v :FromVideoId as form_video_id,
+  v :FromVideoTitle as from_video_title,
+  v :ToChannelTitle as to_channel_title,
+  v :ToVideoId as to_video_id,
+  v :ToVideoTitle as to_video_title,
+  iff(
+    v :Updated like '0001-01-01%',
+    '2019-11-02 13:50:00',
+    v :Updated
+  ) :: timestamp_ntz as updated
+from
+  ${ref("rec_stage")}
+
+incremental_where {
+  updated > (
+    SELECT
+      MAX(updated)
+    FROM
+      ${self()}
+  )
+}

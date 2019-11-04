@@ -1,0 +1,4 @@
+config { type: "view" }
+
+select * from ${ref("video")}
+where age = 1

@@ -1,0 +1,10 @@
+config {
+  type: "view"
+}
+
+select
+  *
+from
+  ${ref("channel")}
+where
+  age = 1
