@@ -1,10 +1,11 @@
 config {
-  type: "incremental"
+  type: "incremental",
+  tags:["standard"]
 }
 
 select
   v :FromChannelId as from_channel_id,
-  v :FromVideoId as form_video_id,
+  v :FromVideoId as from_video_id,
   v :FromVideoTitle as from_video_title,
   v :ToChannelTitle as to_channel_title,
   v :ToVideoId as to_video_id,
