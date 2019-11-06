@@ -1,0 +1,31 @@
+config { type:"table" }
+
+select
+  *,
+  rank() over (
+    partition by from_channel_id
+    order by
+      rec_view_portion desc
+  ) as rank
+from
+  (
+    select
+      from_channel_title,
+      from_channel_id,
+      to_channel_title,
+      to_channel_id,
+      sum(impressions) as impressions,
+      sum(rec_view_portion) as rec_view_portion,
+      sum(recs) as recs,
+      sum(rec_view_portion_percent) as rec_view_portion_percent
+    from
+      ${ref("video_combo_recs")}
+      left join ${ref("video_latest")} v on from_video_id = v.video_id
+    where
+      to_channel_id is not null
+    group by
+      from_channel_title,
+      to_channel_title,
+      from_channel_id,
+      to_channel_id
+  )

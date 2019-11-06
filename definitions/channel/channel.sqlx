@@ -5,17 +5,17 @@ config {
 
 with s as (
   select
-    v :ChannelId as channel_id,
-    v :ChannelTitle as channel_title,
-    v :LogoUrl as logo_url,
-    v :Relevance :: float as relevance,
-    v :LR as lr,
-    v :Subs :: int as subs,
-    v :HardTags as hard_tags,
-    v :SoftTags as soft_tags,
-    v :SheetIds as sheet_ids,
+    v :ChannelId::string as channel_id,
+    v :ChannelTitle::string as channel_title,
+    v :LogoUrl::string as logo_url,
+    v :Relevance::float as relevance,
+    v :LR::string as lr,
+    v :Subs::int as subs,
+    v :HardTags::Array as hard_tags,
+    v :SoftTags::Array as soft_tags,
+    v :SheetIds::Array as sheet_ids,
     v :Updated :: timestamp_ntz as updated,
-    v :StatusMessage as status_msg
+    v :StatusMessage::string as status_msg
   from
     ${ref("channel_stage")}
 )

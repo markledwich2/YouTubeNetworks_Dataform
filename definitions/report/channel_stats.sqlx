@@ -1,0 +1,14 @@
+config { type:"view" }
+
+with channel_video_stats as (
+    select channel_id,
+           sum(views)                                                as views,
+           min(upload_date)                                          as from_date,
+           max(upload_date)                                          as to_date,
+           sum(views) / nullif(datediff(day, from_date, to_date), 0) as daily_views
+    from video_latest
+    group by channel_id
+)
+select c.*, s.views, s.from_date, s.to_date, s.daily_views
+from ${ref("channel_latest")} c
+         left join channel_video_stats s on c.channel_id = s.channel_id

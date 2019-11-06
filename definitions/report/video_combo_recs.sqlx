@@ -1,0 +1,45 @@
+config { type:"view"}
+
+with video_rec_combo as (
+        select rec.from_video_id,
+                rec.from_video_title,
+                fc.channel_id  as from_channel_id,
+                fc.channel_title  as from_channel_title,
+                rec.to_video_id,
+                rec.to_video_title,
+                coalesce(tc_title.channel_id, tc_vid.channel_id)  as to_channel_id,
+                coalesce(tc_vid.channel_title, rec.to_channel_title) as to_channel_title,
+                min(fv.views)  as from_views,
+
+                -- recs between the two videos
+                count(1) as recs,
+
+                -- recs for this video
+                count(1) over (partition by rec.from_video_id) as from_video_recs, 
+
+                -- views * by the portion recs to the video compared to the total number of recs
+                from_views * (recs/from_video_recs) as rec_view_portion,
+                
+
+                -- estimate for the times a rec is seen. Assume 10 is the average number of recs visible form a video. so the impressions is 10*the portion of recs
+                rec_view_portion * 10 as impressions
+
+
+        from ${ref("rec")}
+                left join ${ref("channel_stats")} fc on rec.from_channel_id = fc.channel_id
+                left join ${ref("video_latest")} fv on rec.from_video_id = fv.video_id
+                left join ${ref("video_latest")} tv on rec.to_video_id = tv.video_id
+                left join ${ref("channel_latest")} tc_title on rec.to_channel_title = tc_title.channel_title
+                left join ${ref("channel_latest")} tc_vid on tv.channel_id = tc_vid.channel_id
+                
+        group by rec.from_video_id, rec.from_video_title, fc.channel_id, fc.channel_title, rec.to_video_id,
+                rec.to_video_title,
+                rec.to_channel_title, tc_vid.channel_title, tc_vid.channel_id, tc_title.channel_id
+)
+
+select *,
+       sum(rec_view_portion) over (partition by from_channel_id) as rec_view_portion_channel,
+        -- rec_view_portion % of the total for this channel 
+        rec_view_portion / rec_view_portion_channel as rec_view_portion_percent
+from video_rec_combo
+where 

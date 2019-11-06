@@ -4,12 +4,12 @@ config {
 }
 
 select
-  v :FromChannelId as from_channel_id,
-  v :FromVideoId as from_video_id,
-  v :FromVideoTitle as from_video_title,
-  v :ToChannelTitle as to_channel_title,
-  v :ToVideoId as to_video_id,
-  v :ToVideoTitle as to_video_title,
+  v :FromChannelId :: string as from_channel_id,
+  v :FromVideoId::string as from_video_id,
+  v :FromVideoTitle::string as from_video_title,
+  v :ToChannelTitle::string as to_channel_title,
+  v :ToVideoId::string as to_video_id,
+  v :ToVideoTitle::string as to_video_title,
   iff(
     v :Updated like '0001-01-01%',
     '2019-11-02 13:50:00',
