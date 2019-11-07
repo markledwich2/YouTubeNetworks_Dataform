@@ -1,6 +1,6 @@
 config { type:"view"}
 
-with video_rec_combo as (
+with v1 as (
         select rec.from_video_id,
                 rec.from_video_title,
                 fc.channel_id  as from_channel_id,
@@ -41,5 +41,4 @@ select *,
        sum(rec_view_portion) over (partition by from_channel_id) as rec_view_portion_channel,
         -- rec_view_portion % of the total for this channel 
         rec_view_portion / rec_view_portion_channel as rec_view_portion_percent
-from video_rec_combo
-where 
+from v1

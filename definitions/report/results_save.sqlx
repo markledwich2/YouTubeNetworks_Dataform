@@ -1,0 +1,9 @@
+config { tags: ["standard"] }
+
+${results.save_select('channel_recs', `
+  select from_channel_id, to_channel_id, rec_view_portion,  rec_view_portion_percent
+  from ` + ref("channel_recs") + `
+  where rec_view_portion_percent > 0.01
+`)}
+---
+${results.save_table('channel_stats', ref("channel_stats"))}

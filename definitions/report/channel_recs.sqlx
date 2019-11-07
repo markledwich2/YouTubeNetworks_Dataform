@@ -1,4 +1,4 @@
-config { type:"table" }
+config { type:"table", tags:["standard"] }
 
 select
   *,
@@ -19,7 +19,7 @@ from
       sum(recs) as recs,
       sum(rec_view_portion_percent) as rec_view_portion_percent
     from
-      ${ref("video_combo_recs")}
+      ${ref("video_recs")}
       left join ${ref("video_latest")} v on from_video_id = v.video_id
     where
       to_channel_id is not null
