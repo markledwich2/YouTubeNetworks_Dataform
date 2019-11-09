@@ -12,12 +12,17 @@ from
     select
       from_channel_title,
       from_channel_id,
+      from_main_channel_title,
       to_channel_title,
       to_channel_id,
+      to_main_channel_title,
+      from_media, from_idiology,
+      to_media, to_idiology,
       sum(impressions) as impressions,
       sum(rec_view_portion) as rec_view_portion,
       sum(recs) as recs,
-      sum(rec_view_portion_percent) as rec_view_portion_percent
+      sum(rec_view_channel_percent) as rec_view_channel_percent,
+      sum(impressions_per_to_view) as impressions_per_to_view
     from
       ${ref("video_recs")}
       left join ${ref("video_latest")} v on from_video_id = v.video_id
@@ -27,5 +32,9 @@ from
       from_channel_title,
       to_channel_title,
       from_channel_id,
-      to_channel_id
+      to_channel_id,
+      from_main_channel_title,
+      to_main_channel_title,
+      from_media, from_idiology,
+      to_media, to_idiology
   )

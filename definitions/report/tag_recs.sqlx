@@ -1,0 +1,27 @@
+config { type:"view" }
+
+with channel_tag as (
+  select
+    c.channel_id,
+    c.idiology,
+    c.media,
+    value :: string as tag
+  from
+    channel_stats c,
+    lateral flatten(input => array_cat(soft_tags, hard_tags))
+),
+channel_rec_tag as (
+  select
+    cr_from.tag as from_tag,
+    cr_to.tag as to_tag,
+    cr.*
+  from
+    ${ref("channel_recs")} cr
+    left join channel_tag cr_from on cr_from.channel_id = cr.from_channel_id
+    left join channel_tag cr_to on cr_to.channel_id = cr.from_channel_id
+    where cr.from_channel_id <> cr.to_channel_id
+)
+select
+  *
+from
+  channel_rec_tag

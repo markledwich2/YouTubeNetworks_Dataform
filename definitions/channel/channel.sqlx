@@ -1,29 +1,75 @@
 config {
   type: "table",
-  tags:["standard"]
+  tags: ["standard"]
 }
 
-with s as (
-  select
-    v :ChannelId::string as channel_id,
-    v :ChannelTitle::string as channel_title,
-    v :LogoUrl::string as logo_url,
-    v :Relevance::float as relevance,
-    v :LR::string as lr,
-    v :Subs::int as subs,
-    v :HardTags::Array as hard_tags,
-    v :SoftTags::Array as soft_tags,
-    v :SheetIds::Array as sheet_ids,
-    v :Updated :: timestamp_ntz as updated,
-    v :StatusMessage::string as status_msg
-  from
-    ${ref("channel_stage")}
+with c as (
+    select v :ChannelId :: string      as channel_id,
+           v :ChannelTitle :: string   as channel_title,
+           v :MainChannelId :: string as main_channel_id,
+           v :Description :: string    as channel_decription,
+           v :LogoUrl :: string        as logo_url,
+           v :Relevance :: float       as relevance,
+           v :LR :: string             as lr,
+           v :Subs :: int              as subs,
+           v :ChannelViews :: int      as channel_views,
+           v :Country :: string        as country,
+           v :HardTags :: array        as hard_tags,
+           v :SoftTags :: array        as soft_tags,
+           v :SheetIds :: array        as sheet_ids,
+           v :Updated :: timestamp_ntz as updated,
+           v :StatusMessage :: string  as status_msg
+    from ${ref("channel_stage")}
+),
+mc as (
+    select channel_id, channel_title
+    from c
 )
-select
-  s.*,
-  row_number() over (
-    partition by channel_id
-    order by
-      UPDATED desc
-  ) as age
-from s
+select c.*,
+        coalesce(mc.channel_title, c.channel_title) as main_channel_title,
+       row_number() over (
+           partition by c.channel_id
+           order by
+               updated desc
+           )                           as age,
+       array_cat(soft_tags, hard_tags) as tags,
+       case -- evaluated top to bottom. Start with most stand-out/defining tags
+           when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
+           when array_contains('AntiWhiteness'::variant, tags) then 'Anti-white'
+           when array_contains('MRA'::variant, tags) then 'MRA'
+
+           when main_channel_id in ('UCpwvZwUam-URkxB7g4USKpg') then 'Russian State'
+
+           when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
+
+           when array_contains('Libertarian'::variant, tags) then 'Libertarian'
+
+           when array_contains('AntiSJW'::variant, tags)
+               and arrays_overlap(array_construct('Provocateur', 'PartisanRight'), tags) then 'Alt-light'
+           when array_contains('AntiSJW'::variant, tags) and
+                not arrays_overlap(array_construct('PartisanRight', 'Provocateur'), tags) then 'IDW'
+
+           when arrays_overlap(array_construct('Socialist', 'Revolutionary'), tags) then 'Revolutionary Socialist'
+           when array_contains('Socialist'::variant, tags) then 'Socialist'
+
+           when array_contains('ReligiousConservative'::variant, tags) then 'ReligiousConservative'
+
+           when array_contains('SocialJustice'::variant, tags) then 'SocialJustice'
+
+           when array_contains('PartisanLeft'::variant, tags) then 'Partisan Democrat'
+           when array_contains('PartisanRight'::variant, tags) then 'Partisan Republican'
+
+           when array_contains('AntiTheist'::variant, tags) then 'AntiTheist'
+
+           when array_size(soft_tags) = 0 then 'Other'
+
+           end
+       as idiology,
+       case
+           when arrays_overlap(array_construct('Mainstream News', 'TV'), tags) then 'Mainstream Media'
+           when array_contains('MissingLinkMedia'::variant, tags) then 'MissingLinkMedia'
+           else 'YouTube'
+           end
+       as media
+from c
+left join mc on c.main_channel_id = mc.channel_id

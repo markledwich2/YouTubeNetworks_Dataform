@@ -10,7 +10,7 @@ function save_table(name, table) {
 
 function copy_options() {
     return `
-    file_format = (type='CSV' FIELD_OPTIONALLY_ENCLOSED_BY='"' COMPRESSION='NONE')
+    file_format = (type='CSV' FIELD_OPTIONALLY_ENCLOSED_BY='"' COMPRESSION='gzip')
     single=true
     overwrite=true
     header=true
@@ -18,7 +18,7 @@ function copy_options() {
 }
 
 function results_path(name) {
-    return `@public.yt_results/${date_dir()}/${name}.csv`;
+    return `@public.yt_results/${date_dir()}/${name}.csv.gz`;
 }
 
 function date_dir() {

@@ -6,9 +6,15 @@ with channel_video_stats as (
            min(upload_date)                                          as from_date,
            max(upload_date)                                          as to_date,
            sum(views) / nullif(datediff(day, from_date, to_date), 0) as daily_views
-    from video_latest
+    from  ${ref("video_latest")}
     group by channel_id
 )
-select c.*, s.views, s.from_date, s.to_date, s.daily_views
+select c.*,
+       s.views,
+       s.from_date,
+       s.to_date,
+       s.daily_views,
+       s.views * c.relevance as relevant_views,
+       s.daily_views * c.relevance as relevant_daily_views
 from ${ref("channel_latest")} c
          left join channel_video_stats s on c.channel_id = s.channel_id

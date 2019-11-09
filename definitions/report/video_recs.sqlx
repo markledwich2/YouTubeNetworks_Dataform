@@ -2,13 +2,22 @@ config { type:"view"}
 
 with v1 as (
         select rec.from_video_id,
-                rec.from_video_title,
+                min(rec.from_video_title) as from_video_title,
                 fc.channel_id  as from_channel_id,
                 fc.channel_title  as from_channel_title,
+                fc.main_channel_title as from_main_channel_title,
                 rec.to_video_id,
                 rec.to_video_title,
                 coalesce(tc_title.channel_id, tc_vid.channel_id)  as to_channel_id,
-                coalesce(tc_vid.channel_title, rec.to_channel_title) as to_channel_title,
+                coalesce(tc_title.channel_title, tc_vid.channel_title) as to_channel_title,
+                coalesce(tc_title.main_channel_title, tc_vid.main_channel_title) as to_main_channel_title,
+
+                min(fc.media) as from_media,
+                min(fc.idiology) as from_idiology,
+
+                coalesce(min(tc_title.media), min(tc_vid.media)) as to_media,
+                coalesce(min(tc_title.idiology), min(tc_vid.idiology)) as to_idiology,
+
                 min(fv.views)  as from_views,
 
                 -- recs between the two videos
@@ -18,12 +27,14 @@ with v1 as (
                 count(1) over (partition by rec.from_video_id) as from_video_recs, 
 
                 -- views * by the portion recs to the video compared to the total number of recs
-                from_views * (recs/from_video_recs) as rec_view_portion,
+                from_views * (recs/nullif(from_video_recs, 0)) as rec_view_portion,
                 
 
                 -- estimate for the times a rec is seen. Assume 10 is the average number of recs visible form a video. so the impressions is 10*the portion of recs
-                rec_view_portion * 10 as impressions
+                rec_view_portion * 10 as impressions,
 
+                -- a way to compare youtube influence vs a fair-but-dumb algo proportional to views
+                impressions / nullif(min(tv.views), 0) as impressions_per_to_view
 
         from ${ref("rec")}
                 left join ${ref("channel_stats")} fc on rec.from_channel_id = fc.channel_id
@@ -32,13 +43,17 @@ with v1 as (
                 left join ${ref("channel_latest")} tc_title on rec.to_channel_title = tc_title.channel_title
                 left join ${ref("channel_latest")} tc_vid on tv.channel_id = tc_vid.channel_id
                 
-        group by rec.from_video_id, rec.from_video_title, fc.channel_id, fc.channel_title, rec.to_video_id,
-                rec.to_video_title,
-                rec.to_channel_title, tc_vid.channel_title, tc_vid.channel_id, tc_title.channel_id
+        group by 
+                rec.from_video_id, rec.from_video_title, 
+                fc.channel_id, fc.channel_title, fc.main_channel_title, 
+                rec.to_video_id, rec.to_video_title,
+                tc_vid.channel_title, tc_vid.channel_id, tc_vid.main_channel_title,
+                tc_title.channel_id, tc_title.channel_title, tc_title.main_channel_title
 )
 
 select *,
-       sum(rec_view_portion) over (partition by from_channel_id) as rec_view_portion_channel,
-        -- rec_view_portion % of the total for this channel 
-        rec_view_portion / rec_view_portion_channel as rec_view_portion_percent
+        -- rec_view_portion % of the total for the from channel 
+        rec_view_portion / nullif(sum(rec_view_portion) over (partition by from_channel_id), 0) as rec_view_channel_percent
+
+        
 from v1

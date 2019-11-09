@@ -7,3 +7,5 @@ ${results.save_select('channel_recs', `
 `)}
 ---
 ${results.save_table('channel_stats', ref("channel_stats"))}
+---
+${results.save_table('tag_recs', ref("tag_recs"))}
