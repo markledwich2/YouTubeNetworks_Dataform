@@ -1,11 +1,25 @@
-config { tags: ["standard"] }
+config { tags: ["results"] }
 
 ${results.save_select('channel_recs', `
-  select from_channel_id, to_channel_id, rec_view_portion,  rec_view_portion_percent
+  select from_channel_id, to_channel_id, rec_view_portion,  rec_view_channel_percent
   from ` + ref("channel_recs") + `
-  where rec_view_portion_percent > 0.01
-`)}
+  where rec_view_channel_percent > 0.01
+`, "csv")}
 ---
-${results.save_table('channel_stats', ref("channel_stats"))}
+${results.save_select('channel_stats', 
+`select channel_id,
+       channel_title,
+       channel_views,
+       country,
+       relevance,
+       daily_views,
+       views,
+       from_date,
+       to_date,
+       lr,
+       tags,
+       idiology,
+       media
+from ` + ref("channel_stats"), "csv")}
 ---
-${results.save_table('tag_recs', ref("tag_recs"))}
+${results.save_table('tag_recs', ref("tag_recs"), "csv")}

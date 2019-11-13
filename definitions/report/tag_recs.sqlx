@@ -8,7 +8,7 @@ with channel_tag as (
     value :: string as tag
   from
     channel_stats c,
-    lateral flatten(input => array_cat(soft_tags, hard_tags))
+    lateral flatten(input => tags)
 ),
 channel_rec_tag as (
   select
