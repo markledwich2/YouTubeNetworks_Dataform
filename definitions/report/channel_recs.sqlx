@@ -16,8 +16,8 @@ from
       to_channel_title,
       to_channel_id,
       to_main_channel_title,
-      from_media, from_idiology,
-      to_media, to_idiology,
+      from_media, from_ideology,
+      to_media, to_ideology,
       sum(impressions) as impressions,
       sum(rec_view_portion) as rec_view_portion,
       sum(recs) as recs,
@@ -35,6 +35,6 @@ from
       to_channel_id,
       from_main_channel_title,
       to_main_channel_title,
-      from_media, from_idiology,
-      to_media, to_idiology
+      from_media, from_ideology,
+      to_media, to_ideology
   )

@@ -13,10 +13,10 @@ with v1 as (
                 coalesce(tc_title.main_channel_title, tc_vid.main_channel_title) as to_main_channel_title,
 
                 min(fc.media) as from_media,
-                min(fc.idiology) as from_idiology,
+                min(fc.ideology) as from_ideology,
 
                 coalesce(min(tc_title.media), min(tc_vid.media)) as to_media,
-                coalesce(min(tc_title.idiology), min(tc_vid.idiology)) as to_idiology,
+                coalesce(min(tc_title.ideology), min(tc_vid.ideology)) as to_ideology,
 
                 min(fv.views)  as from_views,
 
@@ -24,7 +24,7 @@ with v1 as (
                 count(1) as recs,
 
                 -- recs for this video
-                count(1) over (partition by rec.from_video_id) as from_video_recs, 
+                count(1) over (partition by rec.from_video_id) as from_video_recs,
 
                 -- views * by the portion recs to the video compared to the total number of recs
                 from_views * (recs/nullif(from_video_recs, 0)) as rec_view_portion,

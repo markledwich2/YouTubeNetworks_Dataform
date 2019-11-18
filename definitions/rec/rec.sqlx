@@ -14,7 +14,8 @@ select
     v :Updated like '0001-01-01%',
     '2019-11-02 13:50:00',
     v :Updated
-  ) :: timestamp_ntz as updated
+  ) :: timestamp_ntz as updated,
+  date_trunc('day', updated) as updated_day
 from
   ${ref("rec_stage")}
 

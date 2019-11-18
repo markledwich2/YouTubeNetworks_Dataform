@@ -12,14 +12,14 @@ ${results.save_select('channel_stats',
        channel_views,
        country,
        relevance,
+       subs,
        daily_views,
        views,
        from_date,
        to_date,
        lr,
        tags,
-       idiology,
-       media
+       ideology,
+       media,
+       logo_url
 from ` + ref("channel_stats"), "csv")}
----
-${results.save_table('tag_recs', ref("tag_recs"), "csv")}

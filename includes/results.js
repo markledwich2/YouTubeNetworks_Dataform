@@ -21,7 +21,7 @@ function copy_options(extension) {
     var type = [0]
     if (type = "csv")
         return `
-        file_format = (type='csv' FIELD_OPTIONALLY_ENCLOSED_BY='"' COMPRESSION='${compression}')
+        file_format = (type='csv' FIELD_OPTIONALLY_ENCLOSED_BY='"' COMPRESSION='${compression}' NULL_IF=())
         single=true
         overwrite=true
         header=true

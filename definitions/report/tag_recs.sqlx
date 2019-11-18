@@ -3,7 +3,7 @@ config { type:"view" }
 with channel_tag as (
   select
     c.channel_id,
-    c.idiology,
+    c.ideology,
     c.media,
     value :: string as tag
   from
