@@ -1,0 +1,17 @@
+config {
+    type:'view'
+}
+
+select
+       right(uc.value:SheetId::string, 2) as user_code,
+       channel_id,
+       channel_title,
+       c.relevance,
+       uc.value:Relevance::number as user_relevance,
+       array_to_string(c.soft_tags, '|') as soft_tags,
+       uc.value:LR::string as lr, 
+       array_to_string(uc.value:SoftTags::array, '|') as user_soft_tags,
+       uc.value:Notes::string as notes
+from ${ref('channel_latest')} c,
+lateral flatten(input => user_channels) uc
+order by channel_title, user_code

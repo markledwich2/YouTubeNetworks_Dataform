@@ -23,3 +23,5 @@ ${results.save_select('channel_stats',
        media,
        logo_url
 from ` + ref("channel_stats"), "csv")}
+---
+${results.save_table('channel_classification', ref('channel_classification'), 'csv')}
