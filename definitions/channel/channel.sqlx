@@ -63,8 +63,8 @@ with c as (
                 case
                     when array_contains('ManoelControl'::variant, tags) then 'Control'
                     when array_contains('ManoelAltRight'::variant, tags) then 'Alt-right'
-                    when array_contains('ManoelAltLight'::variant, tags) then 'Alt-light'
-                    when array_contains('ManoelAltIDW'::variant, tags) then 'IDW'
+                    when array_contains('ManoelAltLite'::variant, tags) then 'Alt-light'
+                    when array_contains('ManoelIDW'::variant, tags) then 'IDW'
                     else null
                     end  as manoel,
                 iff(array_contains('AIN'::variant, tags), 'AIN', null) as ain

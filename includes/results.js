@@ -31,7 +31,7 @@ function copy_options(extension) {
 }
 
 function results_path(name, extension) {
-    return `@public.yt_results/${name}.${extension}`;
+    return `@public.yt_results/latest/${name}.${extension}`;
 }
 
 function date_dir() {

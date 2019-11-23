@@ -1,4 +1,4 @@
-config { type:"view"}
+config { type:"table"}
 
 with v1 as (
         select rec.from_video_id,
@@ -32,6 +32,8 @@ with v1 as (
 
                 -- estimate for the times a rec is seen. Assume 10 is the average number of recs visible form a video. so the impressions is 10*the portion of recs
                 rec_view_portion * 10 as impressions,
+
+                impressions * avg(fc.relevance) as relevant_impressions,
 
                 -- a way to compare youtube influence vs a fair-but-dumb algo proportional to views
                 impressions / nullif(min(tv.views), 0) as impressions_per_to_view

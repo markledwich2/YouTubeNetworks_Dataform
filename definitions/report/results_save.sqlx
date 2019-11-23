@@ -1,9 +1,9 @@
 config { tags: ["results"] }
 
 ${results.save_select('channel_recs', `
-  select from_channel_id, to_channel_id, rec_view_portion,  rec_view_channel_percent
+  select from_channel_id, to_channel_id, relevant_impressions,  rec_view_channel_percent
   from ` + ref("channel_recs") + `
-  where rec_view_channel_percent > 0.01
+  where rec_view_channel_percent > 0.005
 `, "csv")}
 ---
 ${results.save_select('channel_stats', 
@@ -14,6 +14,7 @@ ${results.save_select('channel_stats',
        relevance,
        subs,
        daily_views,
+       relevant_daily_views,
        views,
        from_date,
        to_date,
@@ -21,6 +22,8 @@ ${results.save_select('channel_stats',
        tags,
        ideology,
        media,
+       manoel,
+       ain,
        logo_url
 from ` + ref("channel_stats"), "csv")}
 ---

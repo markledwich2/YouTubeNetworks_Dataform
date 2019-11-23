@@ -22,7 +22,8 @@ from
       sum(rec_view_portion) as rec_view_portion,
       sum(recs) as recs,
       sum(rec_view_channel_percent) as rec_view_channel_percent,
-      sum(impressions_per_to_view) as impressions_per_to_view
+      sum(impressions_per_to_view) as impressions_per_to_view,
+      sum(relevant_impressions) as relevant_impressions
     from
       ${ref("video_recs")}
       left join ${ref("video_latest")} v on from_video_id = v.video_id
