@@ -1,0 +1,36 @@
+config {
+  type: 'view'
+}
+
+select
+  channel_id,
+  channel_title,
+  channel_views,
+  country,
+  relevance,
+  subs,
+  daily_views,
+  relevant_daily_views,
+  views,
+  from_date,
+  to_date,
+  lr,
+  tags,
+  ideology,
+  media,
+  manoel,
+  ain,
+  logo_url,
+  subs > 10000
+  or daily_views > (
+    select
+      avg(daily_views / subs)
+    from
+      ${ref('channel_stats')}
+    where
+      subs > 0
+  ) * 10000 as meets_subs_views_criteria
+from
+  ${ref('channel_stats')}
+where
+  meets_subs_views_criteria

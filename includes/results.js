@@ -1,3 +1,5 @@
+// not used anymore. We use YtNetworks project because we can write mutliple files, package a single zip and add COntentEncoding so that files are decomprssed by a browser
+
 function save_select(name, select, extension = "csv.gz") {
     return `copy into ` + results_path(name, extension) + 
     ` from (${select})` + copy_options(extension);
@@ -31,7 +33,7 @@ function copy_options(extension) {
 }
 
 function results_path(name, extension) {
-    return `@public.yt_results/latest/${name}.${extension}`;
+    return `@public.yt_results/${date_dir()}/${name}.${extension}`;
 }
 
 function date_dir() {

@@ -1,0 +1,13 @@
+config {
+  type: 'view'
+}
+
+select
+  from_channel_id,
+  to_channel_id,
+  relevant_impressions,
+  rec_view_channel_percent
+from
+  channel_recs
+where
+  rec_view_channel_percent > 0.01

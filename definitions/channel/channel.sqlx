@@ -34,22 +34,17 @@ with c as (
                     )                                       as age,
                 array_cat(soft_tags, hard_tags)             as tags,
                 case -- evaluated top to bottom. Start with most stand-out/defining tags
-                    when array_contains('WhiteIdentitarian'::variant, tags) then 'Alt-right'
-                    when array_contains('AntiWhiteness'::variant, tags) then 'Anti-white'
+                    when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
                     when array_contains('MRA'::variant, tags) then 'MRA'
                     --when main_channel_id in ('UCpwvZwUam-URkxB7g4USKpg') then 'Russian State'
-                    when array_contains('Libertarian'::variant, tags) then 'Libertarian'
                     when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
+                    when array_contains('Libertarian'::variant, tags) then 'Libertarian'
                     when array_contains('AntiSJW'::variant, tags)
                         and arrays_overlap(array_construct('Provocateur', 'PartisanRight'), tags) then 'Alt-light'
-                    when array_contains('AntiSJW'::variant, tags) and
-                         not arrays_overlap(array_construct('PartisanRight', 'Provocateur'), tags) then 'Anti-SJW'
-                    -- not enough to be interesting
-                    --                     when array_contains('Socialist'::variant, tags) and array_contains('Revolutionary'::variant, tags)
-                    --                         then 'Revolutionary Socialist'
+                    when array_contains('AntiSJW'::variant, tags) then 'Anti-SJW'
                     when array_contains('Socialist'::variant, tags) then 'Socialist'
                     when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
-                    when array_contains('SocialJustice'::variant, tags) then 'Social Justice'
+                    --when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
                     when array_contains('PartisanLeft'::variant, tags) then 'Partisan Left'
                     when array_contains('PartisanRight'::variant, tags) then 'Partisan Right'
                     when array_contains('AntiTheist'::variant, tags) then 'Anti-Theist'
