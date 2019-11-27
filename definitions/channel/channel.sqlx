@@ -47,7 +47,7 @@ with c as (
                     --when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
                     when array_contains('PartisanLeft'::variant, tags) then 'Partisan Left'
                     when array_contains('PartisanRight'::variant, tags) then 'Partisan Right'
-                    when array_contains('AntiTheist'::variant, tags) then 'Anti-Theist'
+                    when array_contains('AntiTheist'::variant, tags) then 'Anti-theist'
                     else null
                     end as ideology,
                 case

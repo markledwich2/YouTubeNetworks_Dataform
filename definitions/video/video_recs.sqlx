@@ -1,4 +1,4 @@
-config { type:"table"}
+config { type:"table", tags: ["standard"]}
 
 with v1 as (
         select rec.from_video_id,
@@ -24,7 +24,7 @@ with v1 as (
                 count(1) as recs,
 
                 -- recs for this video
-                count(1) over (partition by rec.from_video_id) as from_video_recs,
+                sum(recs) over (partition by rec.from_video_id) as from_video_recs,
 
                 -- views * by the portion recs to the video compared to the total number of recs
                 from_views * (recs/nullif(from_video_recs, 0)) as rec_view_portion,
