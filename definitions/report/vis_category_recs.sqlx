@@ -1,0 +1,13 @@
+config {
+  type: 'view'
+}
+
+with r as (
+  select
+    sum(relevant_impressions_daily) as relevant_impressions_daily,
+    ${channel.recCatColumns()}
+  from
+    channel_recs
+    group by ${channel.recCatColumns()}
+)
+select * from r

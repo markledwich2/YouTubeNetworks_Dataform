@@ -1,0 +1,22 @@
+config { type:'view' }
+
+with c as (
+    select c.channel_id,
+           c.channel_title,
+           right(uc.value:SheetId::string, 2) as reviewer,
+           c.soft_tags,
+           uc.value:SoftTags::variant as reviewer_soft_tags
+    from ${ref('channel_stats')} as c,
+         lateral flatten(input => user_channels) uc
+),
+t as (
+  select distinct st.value::string as tag
+  from ${ref('channel_stats')},
+    lateral flatten(input => soft_tags) st
+)
+select channel_id, channel_title, reviewer,
+       t.tag,
+       array_contains(t.tag::variant, soft_tags) as has_tag,
+       array_contains(t.tag::variant, reviewer_soft_tags) as reviewer_has_tag
+ from c
+inner join t

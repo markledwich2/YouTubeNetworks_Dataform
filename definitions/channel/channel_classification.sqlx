@@ -15,4 +15,4 @@ select
        uc.value:Notes::string as notes
 from ${ref('channel_latest')} c,
 lateral flatten(input => user_channels) uc
-order by channel_title, user_code
+order by channel_title, reviewer_code

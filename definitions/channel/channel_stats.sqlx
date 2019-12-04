@@ -1,43 +1,36 @@
 config {
   type: "table",
-  tags: ["standard"]
+  tags: ["standard"],
+  dependencies: ['video_recs', 'channel_latest']
 }
 
-with cvs as (
-  select
-    channel_id,
-    sum(views) as views,
-    min(upload_date) as from_date,
-    max(upload_date) as to_date,
-    sum(views) / nullif(datediff(day, from_date, to_date), 0) as daily_views
-  from
-    ${ref("video_latest")}
-  group by
-    channel_id
-),
-cs as (
-  select
-    c.*,
-    s.views,
-    s.from_date,
-    s.to_date,
-    s.daily_views,
-    s.views * c.relevance as relevant_views,
-    s.daily_views * c.relevance as relevant_daily_views
-  from
-    ${ref("channel_latest")} c
-    left join cvs s on c.channel_id = s.channel_id
+with fi as (
+    select from_channel_id
+         , sum(relevant_impressions) as impressions
+    from video_recs
+    where to_ideology is not null
+    group by from_channel_id
 )
-select
-  cs.*,
-  subs > 10000
-  or daily_views > (
-      select
-        avg(daily_views / subs)
-      from
-        cs
-      where
-        subs > 0
-    ) * 10000 as meets_subsviews_criteria
-from
-  cs
+   , ti as (
+    select to_channel_id
+         , sum(relevant_impressions) as received_mpressions
+    from video_recs
+    group by to_channel_id
+)
+   , cs as (
+    select c.*
+         , fi.impressions / c.day_range             as daily_impressions
+         , ti.received_mpressions / c.day_range     as received_daily_impressions
+         , received_daily_impressions / c.daily_views as received_daily_impressions_per_view
+    from channel_latest c
+             left join fi on c.channel_id = fi.from_channel_id
+             left join ti on c.channel_id = ti.to_channel_id
+)
+select cs.*,
+       subs > 10000
+           or daily_views > (
+                                select avg(daily_views / subs)
+                                from cs
+                                where subs > 0
+                            ) * 10000 as meets_subsviews_criteria
+from cs

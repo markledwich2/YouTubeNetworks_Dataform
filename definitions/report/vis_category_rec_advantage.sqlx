@@ -1,0 +1,22 @@
+config { type:'view' }
+
+
+with 
+     f as (
+         select from_ideology,
+                sum(relevant_impressions_daily)as from_impressions
+         from ${ref('vis_category_recs')}
+         where to_ideology is not null
+         group by from_ideology
+    ),
+     t as (
+         select to_ideology,
+                sum(relevant_impressions_daily) as to_impressions
+         from ${ref('vis_category_recs')}
+         where from_ideology is not null
+         group by to_ideology
+     )
+select f.from_ideology, from_impressions, to_impressions,
+       (to_impressions - f.from_impressions)/from_impressions as advatage
+       from f
+inner join t on f.from_ideology = t.to_ideology

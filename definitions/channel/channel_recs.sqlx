@@ -1,41 +1,39 @@
 config { type:"table", tags:["standard"] }
 
-select
-  *,
-  rank() over (
-    partition by from_channel_id
-    order by
-      rec_view_portion desc
-  ) as rank
-from
-  (
-    select
-      from_channel_title,
-      from_channel_id,
-      from_main_channel_title,
-      to_channel_title,
-      to_channel_id,
-      to_main_channel_title,
-      from_media, from_ideology,
-      to_media, to_ideology,
-      sum(impressions) as impressions,
-      sum(rec_view_portion) as rec_view_portion,
-      sum(recs) as recs,
-      sum(rec_view_channel_percent) as rec_view_channel_percent,
-      sum(impressions_per_to_view) as impressions_per_to_view,
-      sum(relevant_impressions) as relevant_impressions
-    from
-      ${ref("video_recs")}
-      left join ${ref("video_latest")} v on from_video_id = v.video_id
-    where
-      to_channel_id is not null
-    group by
-      from_channel_title,
-      to_channel_title,
-      from_channel_id,
-      to_channel_id,
-      from_main_channel_title,
-      to_main_channel_title,
-      from_media, from_ideology,
-      to_media, to_ideology
-  )
+with rec_agg as (
+  select
+  from_channel_id,
+  to_channel_id,
+  sum(impressions) as impressions,
+  sum(rec_view_portion) as rec_view_portion,
+  sum(recs) as recs,
+  sum(rec_view_channel_percent) as rec_view_channel_percent,
+  sum(impressions_per_to_view) as impressions_per_to_view,
+  sum(relevant_impressions) as relevant_impressions
+  from ${ref("video_recs")}
+  group by
+  from_channel_id,
+  to_channel_id
+),
+r2 as (
+    select rec_agg.*,
+        fc.channel_title as from_channel_title,
+        tc.channel_title as to_channel_title,
+        fc.media as from_media,
+        tc.media as to_media,
+        fc.ideology as from_ideology,
+        tc.ideology as to_ideology,
+        fc.manoel as from_manoel,
+        tc.manoel as to_manoel,
+        fc.ain as from_ain,
+        tc.ain as to_ain,
+        fc.lr as from_lr,
+        tc.lr as to_lr,
+        relevant_impressions / fc.day_range as relevant_impressions_daily,
+        rank() over (partition by from_channel_id order by rec_view_portion desc) as from_rank,
+        rank() over (partition by to_channel_id order by rec_view_portion desc) as to_rank
+    from rec_agg
+  left join ${ref("channel_latest")} fc on fc.channel_id = rec_agg.from_channel_id
+  left join ${ref("channel_latest")} tc on tc.channel_id = rec_agg.to_channel_id
+)
+select * from r2

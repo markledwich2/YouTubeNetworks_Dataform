@@ -1,7 +1,9 @@
 config {
   type: "table",
-  tags: ["standard"]
+  tags: ["standard"],
+  dependencies: [ 'channel_stage', 'video_latest',  ]
 }
+
 with c as (
     select v :ChannelId :: string      as channel_id,
            v :ChannelTitle :: string   as channel_title,
@@ -18,21 +20,42 @@ with c as (
            v :UserChannels :: array    as user_channels,
            v :Updated :: timestamp_ntz as updated,
            v :StatusMessage :: string  as status_msg
-    from ${ref('channel_stage')}
+    from channel_stage
 ),
+     cv as (
+         select channel_id
+              , sum(views)                                               as views
+              , min(upload_date)                                         as from_date
+              , max(upload_date)                                         as to_date
+              , datediff(day
+             , from_date
+             , iff(to_date = from_date
+                             , current_date()
+                             , to_date))                                 as day_range
+              , sum(views) / day_range                                   as daily_views
+              , avg(datediff(minutes, '00:00:00'::time, duration::time)) as avg_minutes
+         from video_latest
+         group by channel_id
+     ),
      mc as (
          select channel_id, channel_title
          from c
      ),
      ch as (
          select c.*,
-                coalesce(mc.channel_title, c.channel_title) as main_channel_title,
+                cv.views,
+                cv.from_date,
+                cv.to_date,
+                cv.day_range,
+                cv.daily_views,
+                cv.avg_minutes,
+                coalesce(mc.channel_title, c.channel_title)            as main_channel_title,
                 row_number() over (
                     partition by c.channel_id
                     order by
                         updated desc
-                    )                                       as age,
-                array_cat(soft_tags, hard_tags)             as tags,
+                    )                                                  as age,
+                array_cat(soft_tags, hard_tags)                        as tags,
                 case -- evaluated top to bottom. Start with most stand-out/defining tags
                     when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
                     when array_contains('MRA'::variant, tags) then 'MRA'
@@ -40,31 +63,36 @@ with c as (
                     when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
                     when array_contains('Libertarian'::variant, tags) then 'Libertarian'
                     when array_contains('AntiSJW'::variant, tags)
-                        and arrays_overlap(array_construct('Provocateur', 'PartisanRight'), tags) then 'Alt-light'
+                        and arrays_overlap(array_construct('Provocateur', 'PartisanRight'), tags)
+                        then 'Provocative Anti-SJW'
                     when array_contains('AntiSJW'::variant, tags) then 'Anti-SJW'
                     when array_contains('Socialist'::variant, tags) then 'Socialist'
                     when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
-                    --when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
+                    when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
+                    when c.lr in ('C', 'L') and
+                         arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags)
+                        then 'Center/Left MSM'
                     when array_contains('PartisanLeft'::variant, tags) then 'Partisan Left'
                     when array_contains('PartisanRight'::variant, tags) then 'Partisan Right'
                     when array_contains('AntiTheist'::variant, tags) then 'Anti-theist'
-                    else null
-                    end as ideology,
+                    else 'Unclassified'
+                    end                                                as ideology,
                 case
                     when arrays_overlap(array_construct('Mainstream News', 'TV'), tags) then 'Mainstream Media'
                     when array_contains('MissingLinkMedia'::variant, tags) then 'Missing Link Media'
                     else 'YouTube'
-                    end  as media,
+                    end                                                as media,
                 case
                     when array_contains('ManoelControl'::variant, tags) then 'Control'
                     when array_contains('ManoelAltRight'::variant, tags) then 'Alt-right'
                     when array_contains('ManoelAltLite'::variant, tags) then 'Alt-light'
                     when array_contains('ManoelIDW'::variant, tags) then 'IDW'
                     else null
-                    end  as manoel,
+                    end                                                as manoel,
                 iff(array_contains('AIN'::variant, tags), 'AIN', null) as ain
          from c
                   left join mc on c.main_channel_id = mc.channel_id
+                  left join cv on c.channel_id = cv.channel_id
      )
 select *
 from ch

@@ -2,12 +2,15 @@ config {
   type: 'view'
 }
 
-select
-  from_channel_id,
-  to_channel_id,
-  relevant_impressions,
-  rec_view_channel_percent
-from
-  channel_recs
-where
-  rec_view_channel_percent > 0.01
+with r as (
+  select
+    relevant_impressions_daily,
+    rec_view_channel_percent,
+    from_channel_id,
+    to_channel_id
+  from
+    ${ref('channel_recs')}
+    where (from_rank <= 10 or to_rank <= 10 or rec_view_channel_percent > 0.05) 
+      --and to_channel_id is not null
+)
+select * from r
