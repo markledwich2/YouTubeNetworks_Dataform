@@ -49,6 +49,7 @@ with c as (
                 cv.day_range,
                 cv.daily_views,
                 cv.avg_minutes,
+                daily_views * c.relevance                               as relevant_daily_views,
                 coalesce(mc.channel_title, c.channel_title)            as main_channel_title,
                 row_number() over (
                     partition by c.channel_id

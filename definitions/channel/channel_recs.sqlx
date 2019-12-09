@@ -1,39 +1,67 @@
-config { type:"table", tags:["standard"] }
+config { 
+  type:"table", 
+  tags:["standard"],
+  dependencies: ['video_recs', 'channel_latest']
+}
 
-with rec_agg as (
-  select
-  from_channel_id,
-  to_channel_id,
-  sum(impressions) as impressions,
-  sum(rec_view_portion) as rec_view_portion,
-  sum(recs) as recs,
-  sum(rec_view_channel_percent) as rec_view_channel_percent,
-  sum(impressions_per_to_view) as impressions_per_to_view,
-  sum(relevant_impressions) as relevant_impressions
-  from ${ref("video_recs")}
-  group by
-  from_channel_id,
-  to_channel_id
+with cr as (
+    select from_channel_id,
+           to_channel_id,
+           sum(impressions)              as impressions,
+           sum(rec_view_portion)         as rec_view_portion,
+           sum(recs)                     as recs,
+           sum(rec_view_channel_percent) as rec_view_channel_percent,
+           sum(impressions_per_to_view)  as impressions_per_to_view,
+           sum(relevant_impressions)     as relevant_impressions
+    from video_recs
+    group by from_channel_id, to_channel_id
 ),
-r2 as (
-    select rec_agg.*,
-        fc.channel_title as from_channel_title,
-        tc.channel_title as to_channel_title,
-        fc.media as from_media,
-        tc.media as to_media,
-        fc.ideology as from_ideology,
-        tc.ideology as to_ideology,
-        fc.manoel as from_manoel,
-        tc.manoel as to_manoel,
-        fc.ain as from_ain,
-        tc.ain as to_ain,
-        fc.lr as from_lr,
-        tc.lr as to_lr,
-        relevant_impressions / fc.day_range as relevant_impressions_daily,
-        rank() over (partition by from_channel_id order by rec_view_portion desc) as from_rank,
-        rank() over (partition by to_channel_id order by rec_view_portion desc) as to_rank
-    from rec_agg
-  left join ${ref("channel_latest")} fc on fc.channel_id = rec_agg.from_channel_id
-  left join ${ref("channel_latest")} tc on tc.channel_id = rec_agg.to_channel_id
-)
-select * from r2
+     cart
+         as ( -- every combo of channel direction that at has video recs in any direction. needed so that in_relevant_impressions is balanced
+         select f.channel_id as from_channel_id, t.channel_id as to_channel_id
+         from channel_latest f
+                  cross join channel_latest t
+         where exists(select *
+                      from video_recs v
+                      where (v.from_channel_id = from_channel_id and v.to_channel_id = to_channel_id)
+                         or (v.from_channel_id = to_channel_id and v.to_channel_id = from_channel_id)))
+        ,
+     crec2 as (
+         select cart.from_channel_id,
+                cart.to_channel_id,
+                cr.impressions,
+                cr.recs,
+                cr_in.recs                                                                      as in_recs,
+                cr.rec_view_channel_percent,
+                cr.impressions_per_to_view,
+                greatest(fc.day_range, tc.day_range)                                            as max_day_range, -- the range of days that will be the same for the inverse direction
+                cr.relevant_impressions                                                         as relevant_impressions,
+                cr_in.relevant_impressions                                                      as in_relevant_impressions,
+                cr_in.relevant_impressions / max_day_range                                          as in_relevant_impressions_daily,
+                cr.relevant_impressions / max_day_range                                             as relevant_impressions_daily,
+                fc.channel_title                                                                as from_channel_title,
+                tc.channel_title                                                                as to_channel_title,
+                fc.media                                                                        as from_media,
+                tc.media                                                                        as to_media,
+                fc.ideology                                                                     as from_ideology,
+                tc.ideology                                                                     as to_ideology,
+                fc.manoel                                                                       as from_manoel,
+                tc.manoel                                                                       as to_manoel,
+                fc.ain                                                                          as from_ain,
+                tc.ain                                                                          as to_ain,
+                fc.lr                                                                           as from_lr,
+                tc.lr                                                                           as to_lr,
+
+
+                rank() over (partition by cr.from_channel_id order by cr.rec_view_portion desc) as from_rank,
+                rank() over (partition by cr.to_channel_id order by cr.rec_view_portion desc)   as to_rank
+         from cart
+                  left join cr on cart.from_channel_id = cr.from_channel_id and cart.to_channel_id = cr.to_channel_id
+                  left join cr as cr_in
+                            on cart.to_channel_id = cr_in.from_channel_id and cart.from_channel_id = cr_in.to_channel_id
+                  left join channel_latest fc on fc.channel_id = cart.from_channel_id
+                  left join channel_latest tc on tc.channel_id = cart.to_channel_id
+     )
+select *
+from crec2
+where (recs is not null or in_recs is not null)

@@ -6,7 +6,7 @@ config {
 
 with fi as (
     select from_channel_id
-         , sum(relevant_impressions) as impressions
+         , sum(relevant_impressions) as relevant_impressions
     from video_recs
     where to_ideology is not null
     group by from_channel_id
@@ -19,7 +19,7 @@ with fi as (
 )
    , cs as (
     select c.*
-         , fi.impressions / c.day_range             as daily_impressions
+         , fi.relevant_impressions / c.day_range             as daily_impressions
          , ti.received_mpressions / c.day_range     as received_daily_impressions
          , received_daily_impressions / c.daily_views as received_daily_impressions_per_view
     from channel_latest c
