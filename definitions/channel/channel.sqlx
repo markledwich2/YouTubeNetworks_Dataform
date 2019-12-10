@@ -27,12 +27,12 @@ with c as (
               , sum(views)                                               as views
               , min(upload_date)                                         as from_date
               , max(upload_date)                                         as to_date
-              , datediff(day
+              , greatest(datediff(day
              , from_date
              , iff(to_date = from_date
                              , current_date()
-                             , to_date))                                 as day_range
-              , sum(views) / day_range                                   as daily_views
+                             , to_date)), 1)                               as day_range
+              , sum(views) / day_range                                as daily_views
               , avg(datediff(minutes, '00:00:00'::time, duration::time)) as avg_minutes
          from video_latest
          group by channel_id

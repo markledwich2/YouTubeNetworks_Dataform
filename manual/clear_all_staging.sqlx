@@ -1,9 +1,0 @@
-config {
-    tags: ["manual"]
-}
-
-truncate table if exists ${resolve("channel_stage")}
----
-truncate table if exists ${resolve("video_stage")}
----
-truncate table if exists ${resolve("rec_stage")}
