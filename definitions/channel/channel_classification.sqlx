@@ -11,8 +11,7 @@ select
        array_to_string(c.soft_tags, '|') as soft_tags,
        array_to_string(uc.value:SoftTags::array, '|') as  reviewer_soft_tags,
        c.lr,
-       uc.value:LR::string as reviewer_lr, 
-       uc.value:Notes::string as notes
+       uc.value:LR::string as reviewer_lr
 from ${ref('channel_latest')} c,
 lateral flatten(input => user_channels) uc
 order by channel_title, reviewer_code
