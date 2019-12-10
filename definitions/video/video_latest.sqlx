@@ -1,4 +1,14 @@
-config { type: "view" }
+config { type: "table" }
 
-select * from ${ref("video")}
-where age = 1
+-- video_latest
+with v as (
+    select *
+         , row_number() over (
+        partition by video_id
+        order by
+            updated desc
+        ) as age
+    from ${ref("video")})
+select *
+from v
+where age = 1;
