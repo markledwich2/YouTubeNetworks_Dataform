@@ -3,21 +3,61 @@ config {
   tags:["standard"]
 }
 
-select
-  v :FromChannelId :: string as from_channel_id,
-  v :FromVideoId::string as from_video_id,
-  v :FromVideoTitle::string as from_video_title,
-  v :ToChannelTitle::string as to_channel_title,
-  v :ToVideoId::string as to_video_id,
-  v :ToVideoTitle::string as to_video_title,
-  iff(
-    v :Updated like '0001-01-01%',
-    '2019-11-02 13:50:00',
-    v :Updated
-  ) :: timestamp_ntz as updated,
-  date_trunc('day', updated) as updated_day
-from
-  ${ref("rec_stage")}
+-- rec: union rec v1 & v2
+with v2_flat as (
+    select v :FromChannelId :: string as from_channel_id,
+           v :FromVideoId::string as from_video_id,
+           v :FromVideoTitle::string as from_video_title,
+           v :ToChannelTitle::string as to_channel_title,
+           v :ToVideoId::string as to_video_id,
+           v :ToVideoTitle::string as to_video_title,
+           v:Rank::number as rank,
+           iff(
+                   v :Updated like '0001-01-01%',
+                   '2019-11-02 13:50:00',
+                   v :Updated
+               ) :: timestamp_ntz as updated
+    from ${ref("rec_stage")}
+),
+     v2_lookup as (
+         select from_channel_id,
+                fc.channel_title as from_channel_title,
+                from_video_id,
+                from_video_title,
+                coalesce(tc_title.channel_id, tc_vid.channel_id) as to_channel_id,
+                to_channel_title,
+                to_video_id,
+                to_video_title,
+                rank,
+                r.updated,
+                'v2'::string as collection_version
+         from v2_flat r
+                  left join channel_latest fc on r.from_channel_id = fc.channel_id
+                  left join video_latest tv on r.to_video_id = tv.video_id
+                  left join channel_latest tc_title on r.to_channel_title = tc_title.channel_title
+                  left join channel_latest tc_vid on tv.channel_id = tc_vid.channel_id
+     ),
+     u as (
+         select *
+         from v2_lookup
+         union all
+         select from_channel_id,
+                from_channel_title,
+                from_video_id,
+                from_video_title,
+                to_channel_id,
+                to_channel_title,
+                to_video_id,
+                to_video_title,
+                rank,
+                updated,
+                'v1'::string as collection_version
+         from dbv1_rec
+         where rank <= 20
+     )
+select *, date_trunc('day', updated)::date as updated_day
+from u
+  
 
 incremental_where {
   updated > (

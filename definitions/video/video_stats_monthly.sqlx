@@ -1,0 +1,35 @@
+config { 
+    type: 'table',
+    dependencies: ['date', 'video'] 
+}
+
+-- video view history
+with delta as (
+    select channel_id,
+           video_id,
+           video_title,
+           views - coalesce(lag(views) over (partition by video_id order by updated), 0) as delta_views,
+           coalesce(lag(updated) over (partition by video_id order by updated), upload_date)::date as from_date,
+           --updated::date as to_date,
+           --date_trunc(month, updated)::date as to_month,
+           date_trunc(month, from_date)::date as from_month
+           --datediff(months, from_month, to_month) + 1::int as months
+           --delta_views /  greatest(datediff(days, from_date, updated), 1) as daily_views,
+    from video
+),
+     months as (select distinct month from date),
+     vm as (
+         select channel_id, video_id, video_title, month,
+                sum(delta_views) as views,
+                count(*) as stats_recorded
+         from months
+                  left join delta d on
+                      d.from_month = month --and month <= to_month
+         group by 1,2,3,4
+     )
+--select distinct from_month from delta;
+select m.*, c.channel_title, c.main_channel_id, c.main_channel_title, c.ideology, c.media,
+v.upload_date, v.duration
+from vm m
+left join channel_stats c on c.channel_id = m.channel_id
+left join video_stats v on v.video_id = m.video_id

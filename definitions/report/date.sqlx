@@ -1,0 +1,13 @@
+with cte_my_date as (
+    select DATEADD(day, SEQ4(), '2010-01-01') as d
+    from table (GENERATOR(rowcount =>365*20)) -- Number of days after reference date in previous line
+)
+select d as date
+     , YEAR(d) as year
+     , date_trunc(month, d)::date as month
+     , MONTH(d) as month_of_year
+     , DAY(d) as day_of_month
+     , DAYOFWEEK(d) as day_of_week
+     , WEEKOFYEAR(d) as week_of_year
+     , DAYOFYEAR(d) as day_of_year
+from cte_my_date
