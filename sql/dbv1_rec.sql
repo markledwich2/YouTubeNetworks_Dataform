@@ -38,5 +38,4 @@ with flatten1 as (
          lateral flatten(input => r1.recommended) r2
 )
 select *
-from flatten2
-where rank <= 10;
+from flatten2;
