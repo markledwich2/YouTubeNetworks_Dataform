@@ -1,0 +1,59 @@
+config { 
+  type:"table", 
+  tags:["standard"],
+  dependencies: ['video_recs_monthly', 'channel_latest']
+}
+with cr as (
+    select rec_month,
+           from_channel_id,
+           to_channel_id,
+           sum(impressions) as impressions,
+           sum(rec_view_portion) as rec_view_portion,
+           sum(recs) as recs,
+           sum(percent_channel_monthly_impressions) as percent_channel_monthly_impressions,
+           sum(relevant_impressions) as relevant_impressions
+    from video_recs_monthly
+    group by from_channel_id, to_channel_id, rec_month
+),
+     semetrical as (
+         select distinct r.rec_month,
+                         r.from_channel_id,
+                         r.to_channel_id
+         from video_recs_monthly r
+         union
+         select distinct r.rec_month,
+                         r.to_channel_id,
+                         r.from_channel_id
+         from video_recs_monthly r
+     ),
+     s as (
+         select cc.rec_month,
+                cc.from_channel_id,
+                cc.to_channel_id,
+                cr.impressions,
+                cr.recs,
+                cr_in.recs as in_recs,
+                cr.percent_channel_monthly_impressions,
+                coalesce(cr.relevant_impressions, 0) as relevant_impressions,
+                coalesce(cr_in.relevant_impressions, 0) as in_relevant_impressions,
+                fc.channel_title as from_channel_title,
+                tc.channel_title as to_channel_title,
+                fc.media as from_media,
+                tc.media as to_media,
+                fc.ideology as from_ideology,
+                tc.ideology as to_ideology,
+                fc.manoel as from_manoel,
+                tc.manoel as to_manoel,
+                fc.ain as from_ain,
+                tc.ain as to_ain,
+                fc.lr as from_lr,
+                tc.lr as to_lr
+         from semetrical cc
+                  left join cr on
+                      cc.from_channel_id = cr.from_channel_id and cc.to_channel_id = cr.to_channel_id and cc.rec_month = cr.rec_month
+                  left join cr as cr_in on
+                      cc.from_channel_id = cr_in.to_channel_id and cc.to_channel_id = cr_in.from_channel_id and cc.rec_month = cr_in.rec_month
+                  left join channel_latest fc on fc.channel_id = cc.from_channel_id
+                  left join channel_latest tc on tc.channel_id = cc.to_channel_id
+     )
+select * from s

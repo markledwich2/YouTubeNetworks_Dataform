@@ -2,15 +2,27 @@ config {
   type: 'view'
 }
 
+-- vis channel recs: significant recommendations between channels for 2019
 with r as (
-  select
-    relevant_impressions_daily,
-    rec_view_channel_percent,
-    from_channel_id,
-    to_channel_id
-  from
-    ${ref('channel_recs')}
-    where (from_rank <= 10 or to_rank <= 10 or rec_view_channel_percent > 0.05) 
-      --and to_channel_id is not null
-)
-select * from r
+    select from_channel_id,
+           to_channel_id,
+           sum(relevant_impressions) as relevant_impressions,
+           sum(in_relevant_impressions) as in_relevant_impressions
+    from channel_recs_monthly
+    where rec_month between '2019-01-01'::date and last_day('2019-01-01'::date, year)
+      and exists(select * from channel_latest where channel_id = to_channel_id)
+    group by 1, 2
+    --and to_channel_id is not null
+),
+     ranked as (
+         select *,
+                rank() over (partition by from_channel_id order by relevant_impressions desc) as from_rank,
+                rank() over (partition by from_channel_id order by in_relevant_impressions desc) as to_rank,
+                relevant_impressions /
+                nullif(sum(relevant_impressions) over (partition by from_channel_id), 0) as percent_of_channel_recs
+         from r
+     )
+select from_channel_id, to_channel_id, relevant_impressions / 365 as daily_impressions, percent_of_channel_recs
+from ranked
+where relevant_impressions > 0 and (from_rank <= 10 or to_rank <= 10 or percent_of_channel_recs > 0.01)
+order by to_rank

@@ -4,6 +4,8 @@ config {
         dependencies: ['rec', 'channel_latest', 'video_latest' ]
 }
 
+-- deprecated. use monthly_video_recs instead
+
 with vr as (
     select rec.from_video_id,
            min(rec.from_video_title)                                        as from_video_title,

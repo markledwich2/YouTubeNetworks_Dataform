@@ -62,13 +62,14 @@ with c as (
                     when array_contains('MRA'::variant, tags) then 'MRA'
                     --when main_channel_id in ('UCpwvZwUam-URkxB7g4USKpg') then 'Russian State'
                     when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
+                    when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
                     when array_contains('Libertarian'::variant, tags) then 'Libertarian'
                     when array_contains('AntiSJW'::variant, tags)
                         and arrays_overlap(array_construct('Provocateur', 'PartisanRight'), tags)
                         then 'Provocative Anti-SJW'
                     when array_contains('AntiSJW'::variant, tags) then 'Anti-SJW'
                     when array_contains('Socialist'::variant, tags) then 'Socialist'
-                    when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
+                    
                     when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
                     when c.lr in ('C', 'L') and
                          arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags)

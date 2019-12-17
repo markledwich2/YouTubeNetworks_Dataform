@@ -1,0 +1,77 @@
+config {
+    type:'table',
+    tags:['standard'],
+    dependencies: ['video_stats_monthly', 'rec', 'video_latest', 'channel_latest']
+}
+
+-- monthly video_recs:
+with vr as (
+    select from_video_id
+         , from_channel_id
+         , to_video_id
+         , to_video_title
+         , to_channel_id
+         , to_channel_title
+
+         , date_trunc(month, r.updated)::date as rec_month
+
+         -- recs between the two videos
+         , count(1) as recs
+
+         -- recs for this video
+         , sum(recs) over (partition by from_video_id, rec_month) as from_video_recs
+
+         -- views * by the portion recs to the video compared to the total number of recs
+         , min(fm.views) * (recs / nullif(from_video_recs, 0)) as rec_view_portion
+
+
+         -- estimate for the times a rec is seen. Assume 10 is the average number of recs visible form a video. so the impressions is 10*the portion of recs
+         , rec_view_portion * 10 as impressions
+
+         , impressions * avg(fc.relevance) as relevant_impressions
+
+    from rec r
+             // get closest video stats
+             left join video_stats_monthly fm
+                       on fm.video_id = r.from_video_id and fm.month = date_trunc(month, r.updated)::date
+             left join channel_latest fc on fc.channel_id = r.from_channel_id
+    --where from_channel_id = 'UCfrlXVXz-pT9AmmDELhpyOw' -- fast test
+    group by 1, 2, 3, 4, 5, 6, 7
+),
+     s as (
+         select vr.*
+              ,
+              -- rec_view_portion % of the total for the from channel this month
+                 vr.rec_view_portion /
+                 nullif(sum(vr.rec_view_portion) over (partition by vr.from_channel_id, rec_month),
+                        0) as percent_channel_monthly_impressions
+
+              -- because our videos aren't comprehensive, it is unbalanced when calculating it at this level.
+              --coalesce(vr_to.relevant_impressions, 0) - coalesce(vr.relevant_impressions, 0) as net_impressions
+
+              , fv.video_title as from_video_title
+              , fc.channel_title as from_channel_title
+              , fc.main_channel_title as from_main_channel_title
+              , coalesce(tc.main_channel_title, to_channel_title) as to_main_channel_title
+              , fc.media as from_media
+              , tc.media as to_media
+              , fc.ideology as from_ideology
+              , tc.ideology as to_ideology
+
+         from vr
+                  left join video_latest fv on fv.video_id = vr.from_video_id
+                  left join channel_latest fc on fc.channel_id = vr.from_channel_id
+                  left join channel_latest tc on tc.channel_id = vr.to_channel_id
+     ),
+     video_views_test as (
+         select from_channel_id,
+                from_video_id,
+                rec_month,
+                sum(impressions) as impressions,
+                sum(percent_channel_monthly_impressions) as percent_channel_monthly_impressions,
+                min(m.views) as views
+         from s
+                  left join video_stats_monthly m on s.from_video_id = m.video_id and rec_month = m.month
+         group by 1, 2, 3
+         order by rec_month desc)
+select * from s

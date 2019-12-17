@@ -1,8 +1,12 @@
+config {
+    type:'table'
+}
+
 with cte_my_date as (
     select DATEADD(day, SEQ4(), '2010-01-01') as d
     from table (GENERATOR(rowcount =>365*20)) -- Number of days after reference date in previous line
 )
-select d as date
+select d::date as date
      , YEAR(d) as year
      , date_trunc(month, d)::date as month
      , MONTH(d) as month_of_year
