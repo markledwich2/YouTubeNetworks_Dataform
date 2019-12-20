@@ -8,7 +8,7 @@ with r as (
     ${channel.recCatColumns()}
   from
     ${ref('channel_recs_monthly')}
-    where rec_month between '2019-01-01'::date and last_day('2019-01-01'::date, year)
+    where rec_month between '2019-11-01'::date and last_day('2019-12-31'::date, year)
     group by ${channel.recCatColumns()}
 )
 select * from r

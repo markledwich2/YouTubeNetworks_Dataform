@@ -1,0 +1,90 @@
+config {
+    type:'table',
+    tags: ['standard'],
+    dependencies: ['video', 'channel_stats', 'video_stats']
+}
+
+with delta as (
+    select channel_id,
+           video_id,
+           video_title,
+           views - coalesce(lag(views) over (partition by video_id order by updated), 0) as delta_views,
+           -- from date is the previous updated date, of if that is missing the upload_date
+           -- sometimes the upload date is more recent than uploads (e.g. live stream scheduled in advance 21HQL59EsQY)
+           lag(updated) over (partition by video_id order by updated) as prev_date,
+           min(upload_date) over (partition by video_id order by updated) as first_upload_date,
+           updated as updated,
+           updated::date as to_date,
+           coalesce(prev_date, least(first_upload_date, updated))::date as from_date,
+           greatest(1.0,datediff(days, from_date, to_date))::int as days, --be careful. needs to match the v1 left join. e.g. if days rows match with delta, this should also be 2
+           views as total_views
+    from video
+    --where video_id = 'CmK5hETG6Ys'
+),
+     days as (
+         select date
+         from date
+         where date between (select min(from_date) from delta) and (select max(to_date) from delta)),
+     vd as (
+         select channel_id,
+                video_id,
+                date,
+                datediff(days, from_date::date, date)::int as range_age,
+                delta_views,
+                total_views,
+                updated,
+                from_date,
+                days,
+                first_upload_date,
+                video_title,
+             /*
+views1: When our range is > 1 day and we should give a realistic distribution of views
+to do this I took the average views for 2019 over age and created a formula using wolfram notebook
+https://www.wolframcloud.com/obj/6f22519c-cb44-41bc-85e1-3f5e531b4e05
+because the formula is an approximation we need to adjust as a second step to make it add up perfectly
+*/
+                round(delta_views * iff(days > 1,
+                                        iff(range_age < 30 and range_age >= 0, 1.0 / (pow(1.8 + range_age, 1.77)), null),
+                                        1)) as views_decay, -- up to 14 days of realistic decaying views
+                1 as stats_recorded
+
+         from days -- query months and join to delta to spread across months sans updates
+                  left join delta d on
+                    d.from_date = date or (d.from_date < date and date < d.to_date)
+         where views_decay >= 1
+     ),
+     vd2 as (
+         select channel_id,
+                video_id,
+                video_title,
+                date,
+                -- true-up any missing views to the first in the range. partition by updated to decay this particular this delta row
+                iff(days > 1 and range_age = 0,
+                    views_decay + delta_views - (sum(views_decay) over (partition by video_id, updated))
+                    , views_decay) as views,
+                total_views,
+                range_age,
+                updated,
+                days,
+                delta_views
+         from vd
+     ),
+     s as (
+         select vd2.*,
+                c.channel_title,
+                c.main_channel_id,
+                c.main_channel_title,
+                c.ideology,
+                c.media,
+                v.upload_date,
+                v.duration
+                --m.views * datediff(seconds, '00:00:00'::time, duration) / 60 / 60 as hours_watched
+         from vd2
+                  left join channel_stats c on c.channel_id = vd2.channel_id
+                  left join video_stats v on v.video_id = vd2.video_id
+     )
+select *
+-- use the running totals when developing this query to ensure rows aren't being under/over counted. Its easy to get too many/to view joins form date.
+--        ,sum(views_decay) over (partition by video_id order by date rows between unbounded preceding and current row) as views_decay_total
+--        ,sum(views_even) over (partition by video_id order by date rows between unbounded preceding and current row) as views_even_total
+from s
