@@ -1,6 +1,6 @@
 with r as (
     select sum(relevant_impressions /
-               datediff(day, :from::date, last_day(:to::date, month))) as relevant_impressions_daily,
+               datediff(day, :from::date, least(last_day(:to::date, month), current_date()))) as relevant_impressions_daily,
            from_ideology,
            to_ideology,
            from_media,

@@ -2,8 +2,9 @@ with cr as (
     select channel_id
          , sum(relevant_impressions) as relevant_impressions
          , sum(relevant_impressions_in) as relevant_impressions_in
-         , sum(relevant_impressions) / datediff(day, :from::date, last_day(:to::date, month)) as relevant_impressions_daily
-         , sum(relevant_impressions_in) / datediff(day, :from::date, last_day(:to::date, month)) as relevant_impressions_in_daily
+         , max(datediff(day, :from::date, least(last_day(:to::date, month ), current_date()))) as days
+         , sum(relevant_impressions) / days as relevant_impressions_daily
+         , sum(relevant_impressions_in) / days as relevant_impressions_in_daily
          , max(meets_subsviews_criteria) as meets_subsviews_criteria
     from channel_stats_monthly
     where rec_month between :from and last_day(:to::date, month)
