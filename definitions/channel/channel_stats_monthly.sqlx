@@ -1,0 +1,30 @@
+config {
+  type: "table",
+  tags: ["standard"],
+  dependencies: ['channel_recs_monthly', 'channel_latest']
+}
+
+with r as (
+    select from_channel_id as channel_id
+         , rec_month
+         , sum(relevant_impressions) as relevant_impressions
+         , sum(relevant_impressions_in) as relevant_impressions_in
+    from channel_recs_monthly
+    group by 1, 2
+)
+   , s as (
+    select r.rec_month
+         , c.*
+         , r.relevant_impressions
+         , r.relevant_impressions_in
+         , subs > 10000
+        or daily_views > (
+                             select avg(daily_views / subs)
+                             from channel_latest
+                             where subs > 0
+                         ) * 10000 as meets_subsviews_criteria
+    from r
+             left join channel_latest c on r.channel_id = c.channel_id
+)
+select *
+from s

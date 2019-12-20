@@ -1,7 +1,7 @@
 config {
     type:'table',
     tags: ['standard'],
-    dependencies: ['video', 'channel_stats', 'video_stats']
+    dependencies: ['video', 'channel_latest', 'video_latest']
 }
 
 with delta as (
@@ -80,8 +80,8 @@ because the formula is an approximation we need to adjust as a second step to ma
                 v.duration
                 --m.views * datediff(seconds, '00:00:00'::time, duration) / 60 / 60 as hours_watched
          from vd2
-                  left join channel_stats c on c.channel_id = vd2.channel_id
-                  left join video_stats v on v.video_id = vd2.video_id
+                  left join channel_latest c on c.channel_id = vd2.channel_id
+                  left join video_latest v on v.video_id = vd2.video_id
      )
 select *
 -- use the running totals when developing this query to ensure rows aren't being under/over counted. Its easy to get too many/to view joins form date.
