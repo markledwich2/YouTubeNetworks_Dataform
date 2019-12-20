@@ -5,10 +5,10 @@ with r1 as (
            sum(relevant_impressions) as relevant_impressions,
            sum(in_relevant_impressions) as in_relevant_impressions,
            sum(relevant_impressions) /
-           datediff(day, :from_month::date, last_day(:to_month::date, year)) as relevant_impressions_daily
+           datediff(day, :from::date, last_day(:to::date, month )) as relevant_impressions_daily
     from channel_recs_monthly
     where exists(select * from channel_latest where channel_id = to_channel_id)
-      and rec_month between :from_month::date and last_day(:to_month::date, year)
+      and rec_month between :from::date and last_day(:to::date, year)
     group by from_channel_id, to_channel_id
 ),
      r2 as (
