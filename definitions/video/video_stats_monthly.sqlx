@@ -1,6 +1,6 @@
 config { 
     type: 'view',
-    dependencies: ['video_stats_daily'],
+    dependencies: ['video_stats_daily', 'channel_latest'],
     //tags: ['standard']
 }
 
@@ -23,8 +23,8 @@ with vm as (
                 v.duration
                 --m.views * datediff(seconds, '00:00:00'::time, duration) / 60 / 60 as hours_watched
          from vm
-                  left join channel_stats c on c.channel_id = vm.channel_id
-                  left join video_stats v on v.video_id = vm.video_id
+                  left join channel_latest c on c.channel_id = vm.channel_id
+                  left join video_latest v on v.video_id = vm.video_id
      )
 
 select * from s
