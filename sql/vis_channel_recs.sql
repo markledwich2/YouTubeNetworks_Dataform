@@ -3,7 +3,7 @@ with r1 as (
     select from_channel_id,
            to_channel_id,
            sum(relevant_impressions) as relevant_impressions,
-           sum(in_relevant_impressions) as in_relevant_impressions,
+           sum(relevant_impressions_in) as relevant_impressions_in,
            sum(relevant_impressions) /
            datediff(day, :from::date, last_day(:to::date, month )) as relevant_impressions_daily
     from channel_recs_monthly
@@ -14,7 +14,7 @@ with r1 as (
      r2 as (
          select *,
                 rank() over (partition by from_channel_id order by relevant_impressions desc) as from_rank,
-                rank() over (partition by from_channel_id order by in_relevant_impressions desc) as to_rank,
+                rank() over (partition by from_channel_id order by relevant_impressions_in desc) as to_rank,
                 relevant_impressions /
                 nullif(sum(relevant_impressions) over (partition by from_channel_id), 0) as percent_of_channel_recs
          from r1
