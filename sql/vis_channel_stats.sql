@@ -17,9 +17,9 @@ select c.channel_id
      , country
      , relevance
      , subs
-     , daily_views
-     , relevant_daily_views
-     , views
+     , channel_lifetime_daily_views
+     , channel_lifetime_daily_views_relevant
+     , channel_video_views
      , relevant_impressions_daily
      , relevant_impressions_in_daily
      , avg_minutes
