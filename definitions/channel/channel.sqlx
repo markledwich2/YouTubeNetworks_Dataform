@@ -24,7 +24,7 @@ with c as (
 ),
      cv as (
          select channel_id
-              , sum(views)                                               as views
+              , sum(views)                                               as channel_video_views
               , min(upload_date)                                         as from_date
               , max(upload_date)                                         as to_date
               , greatest(datediff(day
@@ -32,7 +32,7 @@ with c as (
              , iff(to_date = from_date
                              , current_date()
                              , to_date)), 1)                               as day_range
-              , sum(views) / day_range                                as daily_views
+              , sum(views) / day_range                                as channel_lifetime_daily_views
               , avg(datediff(minutes, '00:00:00'::time, duration::time)) as avg_minutes
          from video_latest
          group by channel_id
@@ -43,13 +43,13 @@ with c as (
      ),
      ch as (
          select c.*,
-                cv.views,
+                cv.channel_video_views,
                 cv.from_date,
                 cv.to_date,
                 cv.day_range,
-                cv.daily_views,
+                cv.channel_lifetime_daily_views,
                 cv.avg_minutes,
-                daily_views * c.relevance                               as relevant_daily_views,
+                channel_lifetime_daily_views * c.relevance                               as channel_lifetime_daily_views_relevant,
                 coalesce(mc.channel_title, c.channel_title)            as main_channel_title,
                 row_number() over (
                     partition by c.channel_id
