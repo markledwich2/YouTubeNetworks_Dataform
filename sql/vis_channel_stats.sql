@@ -2,12 +2,14 @@ with cr as (
     select channel_id
          , sum(relevant_impressions) as relevant_impressions
          , sum(relevant_impressions_in) as relevant_impressions_in
-         , max(datediff(day, :from::date, least(last_day(:to::date, month ), current_date()))) as days
+         , max(datediff(day, :from::date, least(last_day(:to::date, month), current_date()))) as days
          , sum(relevant_impressions) / days as relevant_impressions_daily
          , sum(relevant_impressions_in) / days as relevant_impressions_in_daily
          , max(meets_subsviews_criteria) as meets_subsviews_criteria
+         , sum(video_views) / days as video_views_daily
+         , sum(relevant_video_views) / days as relevant_video_views_daily
     from channel_stats_monthly
-    where rec_month between :from and last_day(:to::date, month)
+    where month between :from and last_day(:to::date, month)
     group by channel_id
 )
 
@@ -22,6 +24,8 @@ select c.channel_id
      , channel_video_views
      , relevant_impressions_daily
      , relevant_impressions_in_daily
+     , video_views_daily
+     , relevant_video_views_daily
      , avg_minutes
      , from_date
      , to_date
