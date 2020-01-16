@@ -23,6 +23,7 @@ with r as (
    , s as (
     select r.rec_month as month
          , cv.video_views -- video views for each month. Can be aggregated
+         , cv.video_views * c.relevance as relevant_video_views
          , c.*
          , r.relevant_impressions
          , r.relevant_impressions_in
