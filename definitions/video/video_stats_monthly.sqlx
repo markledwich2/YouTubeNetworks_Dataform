@@ -1,6 +1,6 @@
 config { 
     type: 'view',
-    dependencies: ['video_stats_daily', 'channel_latest'],
+    dependencies: ['video_stats_daily', 'channel_latest', 'video_latest'],
     //tags: ['standard']
 }
 
