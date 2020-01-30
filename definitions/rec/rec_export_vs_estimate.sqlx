@@ -40,9 +40,5 @@ with channel_exported as ( -- number of actual impressions
              left join channel_latest fc on fc.channel_id = u.from_channel_id
              left join channel_latest tc on tc.channel_id = u.to_channel_id
 )
-select *
-from s;
 
-select distinct month from channel_stats_monthly;
-
-select distinct channel_id from channel_stats_monthly where age =
+select * from s
