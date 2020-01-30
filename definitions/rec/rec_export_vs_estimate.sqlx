@@ -3,7 +3,8 @@ config {
 }
 
 -- traffic export compared
-with channel_exported as (
+--
+with channel_exported as ( -- number of actual impressions
     select e.from_channel_id
          , e.to_channel_id
          , e.from_date
@@ -12,47 +13,36 @@ with channel_exported as (
     where not e.from_channel_missing
     group by 1, 2, 3
 )
-   , exported as (
-    select e.*
-         , coalesce(c.impressions, 0) as impressions_estimate
+   , combos as (
+    select distinct m.channel_id as from_channel_id, e.to_channel_id, e.from_date
     from channel_exported e
-             left join channel_recs_monthly c
-                       on c.from_channel_id = e.from_channel_id
-                           and c.to_channel_id = e.to_channel_id
-                           and c.rec_month = e.from_date
+             cross join channel_stats_monthly m
+    where m.meets_subsviews_criteria
+      and m.month = e.from_date
 )
-   , estimate as (
-    select c.from_channel_id
-         , c.to_channel_id
-         , c.rec_month as from_date
-         , coalesce(e.impressions, 0) as impressions
-         , coalesce(c.impressions, 0) as impressions_estimate
-    from channel_recs_monthly c
-             left join exported e on c.from_channel_id = e.from_channel_id
-        and c.to_channel_id = e.to_channel_id
-        and c.rec_month = e.from_date
-    where exists(select * from exported e2 where e2.to_channel_id = c.to_channel_id and e2.from_date = c.rec_month)
-      and not exists(select *
-                     from exported e2
-                     where e2.to_channel_id = c.to_channel_id
-                       and e2.from_channel_id = c.from_channel_id
-                       and e2.from_date = c.rec_month)
+   , final as (
+    select g.*, coalesce(e.impressions, 0) as impressions_actual, coalesce(r.impressions, 0) as impressions_estimate
+    from combos g
+             left join channel_exported e on g.from_date = e.from_date and g.from_channel_id = e.from_channel_id and
+                                             g.to_channel_id = e.to_channel_id
+             left join channel_recs_monthly r on g.from_date = r.rec_month and g.from_channel_id = r.from_channel_id and
+                                                 g.to_channel_id = r.to_channel_id
 )
-   , unioned as (
-    select *
-    from exported
-    union all
-    select *
-    from estimate
-),
-     s as (
-         select u.*
-              , tc.channel_title as to_channel_title
-              , fc.channel_title as from_channel_title
-              , tc.ideology as to_ideology
-              , fc.ideology as from_ideology
-         from unioned u
-                  left join channel_latest fc on fc.channel_id = u.from_channel_id
-                  left join channel_latest tc on tc.channel_id = u.to_channel_id
-     )
-select * from s
+   , s as (
+    select u.*
+         , tc.channel_title as to_channel_title
+         , fc.channel_title as from_channel_title
+         , tc.ideology as to_ideology
+         , fc.ideology as from_ideology
+        , substr(sha1_hex(fc.channel_id), 0, 8) as from_channel_hash
+        , substr(sha1_hex(tc.channel_id), 0, 8) as to_channel_hash
+    from final u
+             left join channel_latest fc on fc.channel_id = u.from_channel_id
+             left join channel_latest tc on tc.channel_id = u.to_channel_id
+)
+select *
+from s;
+
+select distinct month from channel_stats_monthly;
+
+select distinct channel_id from channel_stats_monthly where age =

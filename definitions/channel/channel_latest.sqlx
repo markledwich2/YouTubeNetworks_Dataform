@@ -2,9 +2,4 @@ config {
   type: "view"
 }
 
-select
-  *
-from
-  ${ref("channel")}
-where
-  age = 1
+select * from ${ref("channel")} where age = 1
