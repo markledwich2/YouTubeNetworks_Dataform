@@ -3,7 +3,6 @@ config {
 }
 
 -- traffic export compared
---
 with channel_exported as ( -- number of actual impressions
     select e.from_channel_id
          , e.to_channel_id
