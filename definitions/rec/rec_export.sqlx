@@ -18,10 +18,16 @@ with e as (
          , v:"Views"::int as rec_views
          , v:AvgViewDuration::time as avg_view_duration
          , v:WatchTimeHrsTotal::double as watch_hrs_total
+         , row_number() over (partition by to_channel_title, from_date, from_video_id order by from_date) as age
     from rec_export_stage)
-select e.*
-     , tc.channel_id as to_channel_id
-     , fc.channel_id is null as from_channel_missing
-from e
-         left join channel_latest tc on e.to_channel_title = tc.channel_title
-         left join channel_latest fc on e.from_channel_id = fc.channel_id
+   , s as (
+    select e.*
+         , tc.channel_id as to_channel_id
+         , fc.channel_id is null as from_channel_missing
+    from e
+             left join channel_latest tc on e.to_channel_title = tc.channel_title
+             left join channel_latest fc on e.from_channel_id = fc.channel_id
+    where e.age = 1
+)
+select *
+from s

@@ -37,6 +37,7 @@ with cr as (
          , cr.percent_channel_monthly_impressions
          , coalesce(cr.relevant_impressions, 0) as relevant_impressions
          , coalesce(cr_in.relevant_impressions, 0) as relevant_impressions_in
+         , coalesce(cr_in.impressions, 0) as impressions_in
          , fc.channel_title as from_channel_title
          , tc.channel_title as to_channel_title
          , fc.media as from_media
