@@ -3,7 +3,6 @@ config {
 }
 
 -- traffic export compared
---
 with channel_exported as ( -- number of actual impressions
     select e.from_channel_id
          , e.to_channel_id
@@ -13,32 +12,48 @@ with channel_exported as ( -- number of actual impressions
     where not e.from_channel_missing
     group by 1, 2, 3
 )
+   -- combination of all channels, to channels & months in export
    , combos as (
-    select distinct m.channel_id as from_channel_id, e.to_channel_id, e.from_date
+    select distinct m.channel_id as from_channel_id, e.to_channel_id, e.from_date as month
     from channel_exported e
              cross join channel_stats_monthly m
     where m.meets_subsviews_criteria
       and m.month = e.from_date
 )
+   , channel_monthly as (
+    select *, relevant_video_views / relevant_views_monthly_total as relevant_video_views_portion
+    from (
+             select month
+                  , channel_id
+                  , relevant_video_views
+                  , sum(relevant_video_views) over (partition by month) as relevant_views_monthly_total
+             from channel_stats_monthly
+         )
+)
    , final as (
-    select g.*, coalesce(e.impressions, 0) as impressions_actual, coalesce(r.impressions, 0) as impressions_estimate
+    select g.*
+         , coalesce(e.impressions, 0) as impressions_actual
+         , coalesce(r.impressions, 0) as impressions_estimate
+         , fm.relevant_video_views_portion * tm.relevant_video_views * 10 as impressions_neutral
     from combos g
-             left join channel_exported e on g.from_date = e.from_date and g.from_channel_id = e.from_channel_id and
+             left join channel_exported e on g.month = e.from_date and g.from_channel_id = e.from_channel_id and
                                              g.to_channel_id = e.to_channel_id
-             left join channel_recs_monthly r on g.from_date = r.rec_month and g.from_channel_id = r.from_channel_id and
+             left join channel_recs_monthly r on g.month = r.rec_month and g.from_channel_id = r.from_channel_id and
                                                  g.to_channel_id = r.to_channel_id
+             left join channel_monthly tm on g.month = tm.month and g.to_channel_id = tm.channel_id
+             left join channel_monthly fm on g.month = fm.month and g.from_channel_id = fm.channel_id
 )
    , s as (
-    select u.*
+    select f.*
          , tc.channel_title as to_channel_title
          , fc.channel_title as from_channel_title
          , tc.ideology as to_ideology
          , fc.ideology as from_ideology
-        , substr(sha1_hex(fc.channel_id), 0, 8) as from_channel_hash
-        , substr(sha1_hex(tc.channel_id), 0, 8) as to_channel_hash
-    from final u
-             left join channel_latest fc on fc.channel_id = u.from_channel_id
-             left join channel_latest tc on tc.channel_id = u.to_channel_id
+         , substr(sha1_hex(fc.channel_id), 0, 8) as from_channel_hash
+         , substr(sha1_hex(tc.channel_id), 0, 8) as to_channel_hash
+    from final f
+             left join channel_latest fc on fc.channel_id = f.from_channel_id
+             left join channel_latest tc on tc.channel_id = f.to_channel_id
 )
-
 select * from s
+
