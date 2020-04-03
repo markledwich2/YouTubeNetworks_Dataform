@@ -1,17 +1,36 @@
 config {
     type: "table",
-    tags: ["standard"]
+    tags: ["standard"],
+    dependencies: ["video", "video_extra_stage"]
 }
 
--- video_latest
 with v as (
     select *
-         , row_number() over (
-        partition by video_id
-        order by
-            updated desc
-        ) as age
-    from ${ref("video")})
-select *
-from v
-where age = 1;
+    from (
+             select *
+                  , row_number() over (
+                 partition by video_id
+                 order by
+                     updated desc
+                 ) as age
+             from video)
+    where age = 1
+)
+   , extra as (
+    select v:HasAd::boolean as had_ad
+         , v:Id::string as video_id
+         , v:Updated::timestamp_ntz as updated
+    from video_extra_stage
+)
+   , ad_stats as (
+    select video_id
+         , sum(iff(had_ad, 1, 0)) as ads
+         , sum(iff(had_ad, 0, 1)) as no_ads
+    from extra
+    group by video_id
+)
+   , video_with_ads as (
+    select v.*, a.ads, a.no_ads, a.ads + a.no_ads as ad_checks, a.ads / ad_checks as pct_ads
+    from v left join ad_stats a on v.video_id = a.video_id
+)
+select * from video_with_ads

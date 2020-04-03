@@ -53,13 +53,4 @@ with v as (
      )
 select u.*
 from u
-
-incremental_where {
-  updated > (
-    SELECT
-      MAX(updated)
-    FROM
-      ${self()}
-  )
-}
-
+${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
