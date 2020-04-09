@@ -56,3 +56,4 @@ with channel_exported as ( -- number of actual impressions
              left join channel_latest tc on tc.channel_id = f.to_channel_id
 )
 select * from s
+

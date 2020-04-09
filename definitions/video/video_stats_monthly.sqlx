@@ -14,6 +14,7 @@ with vm as (
 ),
      s as (
          select vm.*,
+                v.video_title,
                 c.channel_title,
                 c.main_channel_id,
                 c.main_channel_title,
