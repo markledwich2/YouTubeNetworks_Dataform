@@ -1,0 +1,38 @@
+config {
+  type: "incremental",
+  tags:["standard"]
+}
+
+with c as (
+    select v:Updated::timestamp_ntz as updated
+         , v:VideoId::string as video_id
+         , t.value: Text::string as text
+         , try_to_time(t.value: Offset::string) as offset_time
+    from caption_stage s
+       , lateral flatten(input => v:Captions) t
+     ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+)
+   , v1 as (
+    select c.video_id, c.updated
+         , array_agg(c.text) within group ( order by offset_time ) as text_array
+    from c
+    group by video_id, updated
+)
+   , v2 as (
+    select v1.video_id
+          , v1.updated
+         , array_to_string(v1.text_array, '\n') as captions
+         , v.upload_date
+         , v.views
+         , v.video_title
+         , v.channel_title
+         , v.description
+         , v.pct_ads
+         , v.keywords
+    from v1
+             left join video_latest v
+                       on v1.video_id = v.video_id
+    where v.upload_date > '2020-01-01'
+)
+select * from v2
+

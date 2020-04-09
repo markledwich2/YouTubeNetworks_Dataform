@@ -1,0 +1,8 @@
+config { 
+    hasOutput: true,
+    tags: ["stage", "standard"]
+}
+
+${stage.create(self())}
+---
+${stage.copy(self(), "captions")}
