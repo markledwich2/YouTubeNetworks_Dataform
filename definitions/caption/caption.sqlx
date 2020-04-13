@@ -6,33 +6,47 @@ config {
 with c as (
     select v:Updated::timestamp_ntz as updated
          , v:VideoId::string as video_id
-         , t.value: Text::string as text
-         , try_to_time(t.value: Offset::string) as offset_time
+         , t.value: Text::string as caption
+         , timediff(second, '00:00:00'::time, try_to_time(t.value: Offset::string)) as offset_seconds
+         , row_number() over (partition by video_id order by offset_seconds) as caption_no
+
+         --,  'https://youtu.be/' || video_id || '?t=' || timediff(second, '00:00:00'::time, offset_time) as watch_url
     from caption_stage s
        , lateral flatten(input => v:Captions) t
-     ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+    --where video_id in ('2-2-Y3ocGxU','E3URhJx0NSw')
+    ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
 )
-   , v1 as (
-    select c.video_id, c.updated
-         , array_agg(c.text) within group ( order by offset_time ) as text_array
+   , cg as (
+    select video_id
+         , max(updated) as updated
+         , listagg(caption, '\n') within group ( order by offset_seconds asc ) as caption
+         , min(offset_seconds) as offset_seconds
+         , floor(caption_no / 20) as caption_group
     from c
-    group by video_id, updated
+    group by video_id, caption_group
 )
    , v2 as (
-    select v1.video_id
-          , v1.updated
-         , array_to_string(v1.text_array, '\n') as captions
+    select cg.video_id || '|' || caption_group as caption_id
+         , cg.*
+         , cl.ideology
+         , cl.media
+         , cl.country
+         , cl.lr
          , v.upload_date
          , v.views
          , v.video_title
          , v.channel_title
+         , v.channel_id
          , v.description
          , v.pct_ads
-         , v.keywords
-    from v1
-             left join video_latest v
-                       on v1.video_id = v.video_id
-    where v.upload_date > '2020-01-01'
+         , array_to_string(v.keywords, ', ') as keywords
+         , v.duration
+         , v.likes
+         , v.dislikes
+         , v.thumb_high
+    from cg
+             left join video_latest v on cg.video_id = v.video_id
+             left join channel_latest cl on v.channel_id = cl.channel_id
 )
-select * from v2
-
+select *
+from v2
