@@ -1,5 +1,5 @@
 config {
-  type: "view"
+  type: "table"
 }
 
 select * from ${ref("channel")} where age = 1

@@ -1,0 +1,16 @@
+CREATE OR REPLACE FUNCTION public.timeSpanToSeconds(ts string)
+  RETURNS double
+  LANGUAGE JAVASCRIPT
+  AS '
+var parts = TS.split(":") // split it at the colons
+var dayParts = parts[0].split(".")
+var daySecs = dayParts.length > 1 ?
+    +dayParts[0] * 24 * 60 * 60 + dayParts[1] * 60 * 60 :
+    dayParts[0] * 60 * 60
+var minSecs = +parts[1] * 60
+var secSecs = +parts[2] // ss.ms just works because it is decimal
+
+// minutes are worth 60 seconds. Hours are worth 60 minutes.
+return daySecs + minSecs + secSecs
+
+';

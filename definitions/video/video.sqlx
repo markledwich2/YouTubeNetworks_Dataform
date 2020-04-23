@@ -44,6 +44,7 @@ with v as (
                 updated,
                 'v1'::string as collection_version
          from dbv1_video v
+         where video_id is not null
      ),
      u as (
          select *

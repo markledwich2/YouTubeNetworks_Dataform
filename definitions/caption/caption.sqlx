@@ -7,13 +7,10 @@ with c as (
     select v:Updated::timestamp_ntz as updated
          , v:VideoId::string as video_id
          , t.value: Text::string as caption
-         , timediff(second, '00:00:00'::time, try_to_time(t.value: Offset::string)) as offset_seconds
+         , timeSpanToSeconds(t.value: Offset) as offset_seconds
          , row_number() over (partition by video_id order by offset_seconds) as caption_no
-
-         --,  'https://youtu.be/' || video_id || '?t=' || timediff(second, '00:00:00'::time, offset_time) as watch_url
     from caption_stage s
        , lateral flatten(input => v:Captions) t
-    --where video_id in ('2-2-Y3ocGxU','E3URhJx0NSw')
     ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
 )
    , cg as (
