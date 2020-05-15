@@ -1,6 +1,6 @@
 config { 
   type: "table",
-  dependencies: ['rec_export_stage', 'channel_latest'] 
+  dependencies: ['channel_latest'] 
 }
 
 with e as (

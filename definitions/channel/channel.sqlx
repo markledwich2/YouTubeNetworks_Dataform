@@ -1,7 +1,7 @@
 config {
   type: "table",
   tags: ["standard"],
-  dependencies: [ 'channel_stage', 'video_latest',  ]
+  dependencies: ['video_latest' ]
 }
 
 with c as (

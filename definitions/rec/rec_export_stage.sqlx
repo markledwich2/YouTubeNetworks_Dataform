@@ -1,8 +1,0 @@
-config { 
-    hasOutput: true,
-    tags: ["stage"]
-}
-
-${stage.create(self())}
----
-${stage.copy(self(), "rec_exports_processed", "public.yt_private")}

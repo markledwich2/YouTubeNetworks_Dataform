@@ -1,0 +1,34 @@
+config { 
+    type: 'incremental',
+    tags: ['standard']
+}
+    
+select coalesce(v:HasAd, v:hasAd)::boolean as had_ad
+        , coalesce(v:Id, v:id)::string as video_id
+        , coalesce(v:Updated, v:updated)::timestamp_ntz as updated
+        , coalesce(v:Error, v:error)::string as error
+        , coalesce(v:SubError, v:subError)::string as sub_error
+        , case
+            when error like 'This video has been removed by the uploader' then 'Removed - by uploader'
+            when error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Removed - violated community guidelines'
+            when error like 'This video is no longer available due to a copyright claim%' then 'Removed - copyright claim'
+            when error like 'This video has been removed for violating YouTube''s policy on harassment and bullying.'
+                then 'Removed - harassment and bullying'
+            when error like 'This video is unavailable.' then 'Unavailable'
+            when error like 'Restricted' then 'Restricted'
+            when error like 'Warning' then 'Content Warning'
+            when error like 'This video has been removed for violating YouTube''s Terms of Service.' then 'Removed - violated terms of service'
+            when error like 'This video has been removed for violating YouTube''s policy on hate speech%' then 'Removed - Hate speech'
+            when error like 'This live stream recording is not available.' then 'Unavailable'
+            when error like 'This video is no longer available due to a privacy claim by a third party.' then 'Removed - privacy claim'
+            when error like 'This video is unavailable on this device.' then 'Unavailable - device'
+            when error like 'This video has been removed for violating YouTube''s policy on nudity or sexual content.' then 'Removed - sexual content'
+            when error like 'This video is no longer available because the YouTube account associated with this video has been terminated.'
+                then 'Removed - channel terminated'
+            when error like 'Content Warning' and sub_error like '%This video is private%' then 'Content Warning - private'
+            when error like 'Content Warning' then 'Content warning'
+    end as error_type
+        , iff(error_type = 'Removed - copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
+        , row_number() over (partition by video_id order by updated desc) as age
+from video_extra_stage
+${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }

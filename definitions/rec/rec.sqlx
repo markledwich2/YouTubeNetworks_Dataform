@@ -17,7 +17,7 @@ with v2_flat as (
                    '2019-11-02 13:50:00',
                    v :Updated
                ) :: timestamp_ntz as updated
-    from ${ref("rec_stage")}
+    from rec_stage
 ),
      v2_lookup as (
          select from_channel_id,
@@ -57,13 +57,5 @@ with v2_flat as (
      )
 select *, date_trunc('day', updated)::date as updated_day
 from u
-  
 
-incremental_where {
-  updated > (
-    SELECT
-      MAX(updated)
-    FROM
-      ${self()}
-  )
-}
+${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
