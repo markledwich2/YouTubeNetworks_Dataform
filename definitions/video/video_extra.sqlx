@@ -1,6 +1,7 @@
 config { 
     type: 'incremental',
-    tags: ['standard']
+    tags: ['standard'],
+    uniqueKey: ['video_id'],
 }
     
 select coalesce(v:HasAd, v:hasAd)::boolean as had_ad
@@ -29,6 +30,5 @@ select coalesce(v:HasAd, v:hasAd)::boolean as had_ad
             when error like 'Content Warning' then 'Content warning'
     end as error_type
         , iff(error_type = 'Removed - copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
-        , row_number() over (partition by video_id order by updated desc) as age
 from video_extra_stage
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }

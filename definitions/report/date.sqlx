@@ -3,8 +3,8 @@ config {
 }
 
 with cte_my_date as (
-    select DATEADD(day, SEQ4(), '2010-01-01') as d
-    from table (GENERATOR(rowcount =>365*20)) -- Number of days after reference date in previous line
+    select DATEADD(day, SEQ4(), '2017-01-01') as d
+    from table (GENERATOR(rowcount =>365*30)) -- Number of days after reference date in previous line
 )
 select d::date as date
      , YEAR(d) as year

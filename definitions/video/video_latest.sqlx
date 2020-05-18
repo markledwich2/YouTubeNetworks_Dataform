@@ -1,18 +1,19 @@
 config {
-    type: "table",
+    type: "incremental",
+    uniqueKey: ['video_id'],
     tags: ["standard"],
     dependencies: ["video", "video_extra"]
 }
 
 with v_latest as (
-    select *
-    from (select *, row_number() over (partition by video_id order by updated desc) as age from video)
-    where age = 1
+    select * from video
+    ${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
+    qualify row_number() over (partition by video_id order by updated desc) = 1
+    -- this ignores video_extra updates. So if they ahve been updated independently, full load
 )
    , extra_latest as (
-    select *
-    from video_extra
-    where age = 1
+    select * from video_extra
+    qualify row_number() over (partition by video_id order by updated desc) = 1
 )
    , ad_stats as (
     select video_id
