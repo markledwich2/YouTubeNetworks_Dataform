@@ -2,7 +2,7 @@ config {
     type:'incremental',
     tags:['standard'],
     uniqueKey: ['from_video_id', 'to_video_id', 'rec_month'],
-    dependencies: ['video_stats_monthly', 'rec', 'video_latest', 'channel_latest']
+    dependencies: ['video_stats_monthly', 'rec', 'video_latest', 'channel_latest', 'date']
 }
 
 with vr as (

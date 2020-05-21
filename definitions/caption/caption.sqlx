@@ -1,7 +1,7 @@
 config {
   type: "incremental",
   tags:["standard"],
-  dependencies:["video_latest", "channel_latest"]
+  dependencies:["caption_udf", "video_latest", "channel_latest"]
 }
 
 with c as (

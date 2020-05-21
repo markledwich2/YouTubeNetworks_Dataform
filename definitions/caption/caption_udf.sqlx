@@ -1,3 +1,5 @@
+
+
 CREATE OR REPLACE FUNCTION public.timeSpanToSeconds(ts string)
   RETURNS double
   LANGUAGE JAVASCRIPT
