@@ -1,0 +1,42 @@
+config {
+  type: "incremental",
+  tags: ["standard"],
+  dependencies: ["video_latest"]
+}
+
+with
+-- don't incremental, but make sure this is created on a fresh instance with the same schema
+  rs as (
+    select *
+    from dbv1_rec_stage
+    ${ when(incremental(), `where false`) }
+  )
+   , flatten1 as (
+  select fv.video_id as from_video_id
+       , fv.video_title as from_video_title
+       , fv.channel_id as from_channel_id
+       , fv.channel_title as from_channel_title
+       , r.value:updated::timestamp_ntz as updated
+       , r.value:recommended::array as recommended
+  from rs
+         left join video_latest fv on fv.video_id = rs.v:videoId::string
+     , lateral flatten(input => v:recommended) r
+)
+   , flatten2 as (
+  select r1.from_channel_id
+       , r1.from_channel_title
+       , r1.from_video_id
+       , r1.from_video_title
+       , r2.value:channelId::string as to_channel_id
+       , r2.value:channelTitle::string as to_channel_title
+       , r2.value:rank::int as rank
+       , r2.value:videoId::string as to_video_id
+       , r2.value:videoTitle::string as to_video_title
+       , r1.updated
+       , date_trunc('day', updated) as updated_day
+  from flatten1 r1
+     , lateral flatten(input => r1.recommended) r2
+)
+select *
+from flatten2
+

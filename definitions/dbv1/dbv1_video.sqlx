@@ -1,0 +1,26 @@
+config {
+  type: "incremental",
+  tags: ["standard"],
+  dependencies: []
+}
+
+-- don't incremental, but make sure this is created on a fresh instance with the same schema
+with v as (
+  select * from dbv1_video_stage
+  ${ when(incremental(), `where false`) }
+)
+
+select v:latest:videoId::string            as video_id,
+       v:latest:videoTitle::string         as video_title,
+       v:latest:channelId::string          as channel_id,
+       v:latest:channelTitle::string       as channel_title,
+       v:latest:publishedAt::timestamp_ntz as upload_date,
+       h.value: views::int                 as views,
+       h.value:likes::int                  as likes,
+       h.value:dislikes::int               as dislikes,
+       v:latest:description::string        as description,
+       null::time                          as duration,
+       h.value:updated::timestamp_ntz      as updated
+from v,
+     lateral flatten(input => array_cat(array_construct(v:latest:stats), v: history)) h
+
