@@ -1,7 +1,7 @@
 config { 
     type: 'incremental',
     tags: ['standard'],
-    uniqueKey: ['video_id'],
+    uniqueKey: ['video_id', 'updated'],
 }
     
 select coalesce(v:HasAd, v:hasAd)::boolean as had_ad

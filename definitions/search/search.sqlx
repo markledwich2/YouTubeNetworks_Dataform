@@ -1,0 +1,13 @@
+config {
+    type:'incremental',
+    tags:['standard']
+}
+
+select v: Email::string as email
+     , v: Updated::timestamp_ntz as updated
+     , v:Query::string as query
+     , v:Channels::array as channels
+     , v:Ideologies::array as ideologies
+     , v:Origin::string as origin
+from search_stage
+${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
