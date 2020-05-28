@@ -1,0 +1,14 @@
+config {
+  type: "incremental",
+  tags:["userscrape"],
+  uniqueKey: ['account', 'trial_id', 'video_id'],
+  dependencies:[ ]
+}
+
+select v: account::string as account
+     , v:trial::string as trial_id
+     , v:video_id::string as video_id
+     , a.value::string as advertiser
+from us_ad_stage
+   , lateral flatten(input => v:advertisers::array, outer => true) a
+${ when(incremental(), `WHERE trial_id > (SELECT MAX(trial_id) FROM ${self()})`) }
