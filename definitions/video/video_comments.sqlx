@@ -1,0 +1,17 @@
+config { 
+    type: 'incremental',
+    tags: ['standard'],
+    uniqueKey: ['video_id', 'author_channel_id', 'created'],
+}
+
+select
+  v:VideoId::string as video_id
+, h.value:Comment::string as comment
+, h.value:Author::string as author
+, h.value:AuthorChannelId::string as author_channel_id
+, h.value:Created::timestamp_ntz as created
+, h.value:Updated::timestamp_ntz as updated
+from video_extra_stage
+, lateral flatten(input => v:Comments::array) h
+
+${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
