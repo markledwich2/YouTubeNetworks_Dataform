@@ -2,9 +2,10 @@ config {
     type: "incremental",
     uniqueKey: ['video_id'],
     tags: ["standard"],
-    dependencies: ["video"]
+    dependencies: [ "video_extra"]
 }
 
-select * from video
+select *
+from video_extra
 ${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
 qualify row_number() over (partition by video_id order by updated desc) = 1

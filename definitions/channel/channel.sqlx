@@ -5,21 +5,22 @@ config {
 }
 
 with c as (
-    select v :ChannelId :: string      as channel_id,
-           v :ChannelTitle :: string   as channel_title,
-           v :MainChannelId :: string  as main_channel_id,
-           v :Description :: string    as channel_decription,
-           v :LogoUrl :: string        as logo_url,
-           v :Relevance :: float       as relevance,
-           v :LR :: string             as lr,
-           v :Subs :: int              as subs,
-           v :ChannelViews :: int      as channel_views,
-           v :Country :: string        as country,
-           v :HardTags :: array        as hard_tags,
-           v :SoftTags :: array        as soft_tags,
-           v :UserChannels :: array    as user_channels,
-           v :Updated :: timestamp_ntz as updated,
-           v :StatusMessage :: string  as status_msg
+    select v:ChannelId::string      as channel_id,
+           v:ChannelTitle::string   as channel_title,
+           v:MainChannelId::string  as main_channel_id,
+           v:Description::string    as channel_decription,
+           v:LogoUrl::string        as logo_url,
+           v:Relevance::float       as relevance,
+           v:LR::string             as lr,
+           v:Subs::int              as subs,
+           v:ChannelViews::int      as channel_views,
+           v:Country::string        as country,
+           v:HardTags::array        as hard_tags,
+           v:SoftTags::array        as soft_tags,
+           v:UserChannels::array    as user_channels,
+           v:Updated::timestamp_ntz as updated,
+           v:StatusMessage::string  as status_msg,
+           v:ReviewStatus::string as review_status
     from channel_stage
 ),
      cv as (
@@ -51,11 +52,6 @@ with c as (
                 cv.avg_minutes,
                 channel_lifetime_daily_views * c.relevance                               as channel_lifetime_daily_views_relevant,
                 coalesce(mc.channel_title, c.channel_title)            as main_channel_title,
-                row_number() over (
-                    partition by c.channel_id
-                    order by
-                        updated desc
-                    )                                                  as age,
                 array_cat(soft_tags, hard_tags)                        as tags,
                 case -- evaluated top to bottom. Start with most stand-out/defining tags
                     when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
@@ -69,7 +65,7 @@ with c as (
                         then 'Provocative Anti-SJW'
                     when array_contains('AntiSJW'::variant, tags) then 'Anti-SJW'
                     when array_contains('Socialist'::variant, tags) then 'Socialist'
-                    
+
                     when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
                     when c.lr in ('C', 'L') and
                          arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags)

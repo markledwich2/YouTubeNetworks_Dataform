@@ -3,4 +3,5 @@ config {
   tags: ["standard"]
 }
 
-select * from ${ref("channel")} where age = 1
+select * from ${ref("channel")}
+qualify row_number() over (partition by channel_id order by updated desc) = 1

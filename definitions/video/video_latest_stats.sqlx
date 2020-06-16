@@ -1,0 +1,25 @@
+config {
+    type: "incremental",
+    uniqueKey: ['video_id'],
+    tags: ["standard"],
+    dependencies: ["video_latest", "video_extra", "video_extra_latest"]
+}
+
+with 
+    ad_stats as (
+    select video_id
+         , sum(iff(had_ad, 1, 0)) as ads
+         , sum(iff(had_ad, 0, 1)) as no_ads
+    from video_extra
+    group by video_id
+)
+   , video_with_ads as (
+    select v.*, a.ads, a.no_ads, a.ads + a.no_ads as ad_checks, a.ads / ad_checks as pct_ads, 
+           e.error, e.sub_error, e.error_type, e.copyright_holder
+    from video_latest as v
+             left join ad_stats a on v.video_id = a.video_id
+             left join video_extra_latest e on v.video_id = e.video_id
+)
+select *
+from video_with_ads
+${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}

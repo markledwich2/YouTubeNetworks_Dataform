@@ -2,32 +2,33 @@ config {
     type: 'incremental',
     tags: ['standard'],
     uniqueKey: ['video_id', 'updated'],
+    dependencies: ['video', 'video_latest']
 }
 
 select
-       -- standard video fields
-       v :VideoId :: string as video_id
-     , v :Title :: string as video_title
-     , v :ChannelId :: string as channel_id
-     , v :ChannelTitle :: string as channel_title
-     , v :UploadDate :: timestamp_ntz as upload_date
-     , v :Statistics :ViewCount :: int as views
-     , v :Statistics :LikeCount :: int as likes
-     , v :Statistics :DislikeCount :: int as dislikes
-     , v :Description :: string as description
-     , v :Duration :: time as duration
-     , v :Keywords :: array as keywords
-     , v :Thumbnails :HighResUrl :: string as thumb_high
-     , v :Thumbnails :StandardResUrl :: string as thumb_standard
-     , v :Thumbnails :LowResUrl :: string as thumb_low
-     , v :Updated:: timestamp_ntz::string as updated
+     -- standard video fields
+     -- initially video extra was missing standard fields. Fall back to the video-latest if we have it
+  coalesce(v:Id, v:id, v:VideoId)::string as video_id
+     , coalesce(v:Title::string, l.video_title) as video_title
+     , coalesce(v:ChannelId::string, l.channel_id) as channel_id
+     , coalesce(v:ChannelTitle::string, l.channel_title) as channel_title
+     , coalesce(v:UploadDate::timestamp_ntz, l.upload_date) as upload_date
+     , coalesce(v:Statistics:ViewCount::int, l.views) as views
+     , coalesce(v:Statistics:LikeCount::int, l.likes) as likes
+     , coalesce(v:Statistics:DislikeCount::int, l.dislikes) as dislikes
+     , coalesce(v:Description::string, l.description) as description
+     , coalesce(try_to_time(v:Duration::string), l.duration) as duration
+     , coalesce(v:Keywords::array, l.keywords) as keywords
+     , coalesce(v:Thumbnail:HighResUrl::string, v:Thumbnail:HighRestUrl::string, v:Thumbnails:HighResUrl::string, l.thumb_high) as thumb_high
+     , coalesce(v:Thumbnail:StandardResUrl::string, v:Thumbnails:StandardResUrl::string, l.thumb_standard) as thumb_standard
+     , coalesce(v:Thumbnail:LowResUrl::string, v:Thumbnails:LowResUrl::string, l.thumb_low) as thumb_low
+     , v:CommentCount::int as comment_count
+     , v:Updated::timestamp_ntz as updated
+     , v:Source::string as source
 
      -- extra fields (coalesce is for backwards compatibility with the first batch that were using different capitalization)
-     , v:Source::string as source
      , coalesce(v:HasAd, v:hasAd)::boolean as had_ad
-     , v:ad::string as ad
-     , coalesce(v:Id, v:id)::string as video_id
-     , coalesce(v:Updated, v:updated)::timestamp_ntz as updated
+     , v:Ad::string as ad
      , coalesce(v:Error, v:error)::string as error
      , coalesce(v:SubError, v:subError)::string as sub_error
      , case
@@ -50,6 +51,7 @@ select
          when error like 'Content Warning' and sub_error like '%This video is private%' then 'Content Warning - private'
          when error like 'Content Warning' then 'Content warning'
   end as error_type
-     , iff(error_type = 'Removed - copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
+     , iff(error_type='Removed - copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
 from video_extra_stage
+       left join video_latest l on l.video_id=coalesce(v:Id, v:id, v:VideoId)::string
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
