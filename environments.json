@@ -5,7 +5,7 @@
             "gitReference": {
                 "branch": "master"
             },
-            "configOverride": {}
+            "configOverride": { }
         }
     ]
 }
