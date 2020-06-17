@@ -1,0 +1,7 @@
+config {
+    type: 'view',
+    dependencies: ['channel_latest']
+}
+
+select * from channel_latest
+where review_status is null or review_status in ('ManualAccepted', 'AlgoAccepted')
