@@ -36,6 +36,6 @@ select c.channel_id
      , manoel
      , ain
      , logo_url
-from channel_latest c
+from channel_accepted c
          left join cr on c.channel_id = cr.channel_id
 where cr.meets_subsviews_criteria = true

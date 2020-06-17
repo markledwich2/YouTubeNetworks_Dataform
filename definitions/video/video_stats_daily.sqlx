@@ -2,7 +2,7 @@ config {
     type:'incremental',
     uniqueKey: ['video_id', 'date'],
     tags: ['standard'],
-    dependencies: ['video', 'channel_latest', 'video_latest']
+    dependencies: ['video', 'channel_accepted', 'video_latest']
 }
 
 -- video_stats_daily spreads video views from our patchy as-at-time records into an estimate for views on each day
@@ -101,7 +101,7 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
          , views_decay) as views
        --m.views * datediff(seconds, '00:00:00'::time, duration) / 60 / 60 as hours_watched
   from vd2
-         left join channel_latest c on c.channel_id = vd2.channel_id
+         left join channel_accepted c on c.channel_id = vd2.channel_id
          left join video_latest v on v.video_id = vd2.video_id
 )
   -- check if there are any videos where the total views don't match the sum of all daily views

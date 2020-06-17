@@ -40,6 +40,13 @@
 			"args": ["run", "--tags", "${input:pickTags}" ],
 			"problemMatcher": [],
 			"label": "dataform: run tags",
+		},
+		{
+			"type": "shell",
+			"command": "dataform",
+			"args": ["run", "--dry-run" ],
+			"problemMatcher": [],
+			"label": "dataform: dry run",
 		}
 	],
 	"inputs": [

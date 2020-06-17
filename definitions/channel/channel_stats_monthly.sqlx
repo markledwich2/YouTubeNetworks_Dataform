@@ -1,7 +1,7 @@
 config {
   type: "table",
   tags: ["standard"],
-  dependencies: ['channel_recs_monthly', 'channel_latest', 'video_stats_monthly']
+  dependencies: ['channel_recs_monthly', 'channel_accepted', 'video_stats_monthly']
 }
 
 -- channel_stats_Monthly
@@ -12,7 +12,7 @@ with r as (
          , sum(relevant_impressions_in) as relevant_impressions_in
     from channel_recs_monthly
          -- for channel stats. Exclude recs to outside channels, otherwise the net impressions are unbalanced
-    where exists(select c.channel_id from channel_latest c where c.channel_id = to_channel_id)
+    where exists(select c.channel_id from channel_accepted c where c.channel_id = to_channel_id)
     group by 1, 2
 )
    , channel_views as (
@@ -31,11 +31,11 @@ with r as (
          , subs > 10000
         or channel_lifetime_daily_views > (
                              select avg(channel_lifetime_daily_views / subs)
-                             from channel_latest
+                             from channel_accepted
                              where subs > 0
                          ) * 10000 as meets_subsviews_criteria
     from r
-             left join channel_latest c on r.channel_id = c.channel_id
+             left join channel_accepted c on r.channel_id = c.channel_id
              left join channel_views cv on r.channel_id = cv.channel_id and r.rec_month = cv.month
 )
 select *

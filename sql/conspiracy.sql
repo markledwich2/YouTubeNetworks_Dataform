@@ -19,7 +19,7 @@ label as (
 select t.video_id, t.title, l.conspiracy, v.channel_title, c.ideology
 from title t left join label l on t.video_id = l.video_id
 left join video_latest v on v.video_id = t.video_id
-left join channel_latest c on v.channel_id = c.channel_id
+left join channel_accepted c on v.channel_id = c.channel_id
 ;
 
 with
@@ -53,7 +53,7 @@ left join rec r on t.video_id = r.video_id
 left join likelyhood l on t.video_id = l.video_id
 left join date d on t.video_id = d.video_id
 left join video_latest v on v.video_id = t.video_id
-left join channel_latest c on v.channel_id = c.channel_id
+left join channel_accepted c on v.channel_id = c.channel_id
 ;
 
 
@@ -68,4 +68,4 @@ channel as (
 )
 select c.*, l.ideology, l.channel_views
 from channel c
-left join channel_latest l on c.channel_id = l.channel_id;
+left join channel_accepted l on c.channel_id = l.channel_id;

@@ -52,8 +52,8 @@ with channel_exported as ( -- number of actual impressions
          , substr(sha1_hex(fc.channel_id), 0, 8) as from_channel_hash
          , substr(sha1_hex(tc.channel_id), 0, 8) as to_channel_hash
     from final f
-             left join channel_latest fc on fc.channel_id = f.from_channel_id
-             left join channel_latest tc on tc.channel_id = f.to_channel_id
+             left join channel_accepted fc on fc.channel_id = f.from_channel_id
+             left join channel_accepted tc on tc.channel_id = f.to_channel_id
 )
 select * from s
 

@@ -5,5 +5,5 @@ select c.channel_id,
        right(uc.value:SheetId::string, 2) as reviewer,
        c.lr,
        uc.value:LR::string as reviewer_lr
-from channel_latest as c,
+from channel_accepted as c,
      lateral flatten(input => user_channels) uc

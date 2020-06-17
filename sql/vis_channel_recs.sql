@@ -7,7 +7,7 @@ with r1 as (
          , max(datediff(day, :from::date, least(last_day(:to::date, month), current_date()))) as days
          , sum(relevant_impressions) / days as relevant_impressions_daily
     from channel_recs_monthly
-    where exists(select * from channel_latest where channel_id = to_channel_id)
+    where exists(select * from channel_accepted where channel_id = to_channel_id)
       and rec_month between :from::date and :to::date
     group by from_channel_id, to_channel_id
 )

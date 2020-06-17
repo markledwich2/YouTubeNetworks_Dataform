@@ -1,7 +1,7 @@
 config { 
   type:"table", 
   tags:["standard"],
-  dependencies: ['video_recs_monthly', 'channel_latest']
+  dependencies: ['video_recs_monthly', 'channel_accepted']
 }
 
 with cr as (
@@ -59,8 +59,8 @@ with cr as (
             cc.from_channel_id = cr_in.to_channel_id and
             cc.to_channel_id = cr_in.from_channel_id -- incomming recs are never from null, no need to coalesce
             and cc.rec_month = cr_in.rec_month
-             left join channel_latest fc on fc.channel_id = cc.from_channel_id
-             left join channel_latest tc on tc.channel_id = cc.to_channel_id
+             left join channel_accepted fc on fc.channel_id = cc.from_channel_id
+             left join channel_accepted tc on tc.channel_id = cc.to_channel_id
 )
 select *
 from s

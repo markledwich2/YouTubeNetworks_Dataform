@@ -3,7 +3,7 @@ with c_rand as (
   select channel_id, gen_no, uniform(0, 10000000000, random()) / 10000000000 as rand
   from (select seq4() as gen_no from table (generator(rowcount => :videos_per_ideology
                                                                     /  10)))
-     , (select distinct channel_id from channel_latest) c
+     , (select distinct channel_id from channel_accepted) c
 )
 
    -- videos with running total, used to select videos at random proportionally to views
@@ -18,7 +18,7 @@ with c_rand as (
        , sum(views) over (partition by c.channel_id order by views rows unbounded preceding) as views_running
        , sum(views) over (partition by c.channel_id) as channel_views_total
   from video_latest v
-         left join channel_latest c on v.channel_id = c.channel_id
+         left join channel_accepted c on v.channel_id = c.channel_id
   where c.channel_id is not null
     and views > 0
     and upload_date > dateadd(day, -365, (select max(upload_date) from video_latest))

@@ -3,7 +3,7 @@ with
   rand_id as (
     select ideology, gen_no, uniform(0, 10000000000, random()) / 10000000000 as rand
     from (select seq4() as gen_no from table (generator(rowcount => :videos_per_ideology)))
-       , (select distinct ideology from channel_latest) c
+       , (select distinct ideology from channel_accepted) c
   )
 
    -- recent videos
@@ -17,7 +17,7 @@ with
        , sum(views) over (partition by ideology order by views rows unbounded preceding) as views_running
        , sum(views) over (partition by ideology) as views_total
   from video_latest v
-         inner join channel_latest c on v.channel_id = c.channel_id
+         inner join channel_accepted c on v.channel_id = c.channel_id
   where upload_date > dateadd(day, -90, (select max(upload_date) from video_latest))
 )
 
