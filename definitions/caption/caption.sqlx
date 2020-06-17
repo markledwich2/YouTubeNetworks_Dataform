@@ -36,7 +36,6 @@ with c as (
          , v.channel_title
          , v.channel_id
          , v.description
-         , v.pct_ads
          , array_to_string(v.keywords, ', ') as keywords
          , v.duration
          , v.likes
