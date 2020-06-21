@@ -2,7 +2,7 @@ config {
     type:'incremental',
     uniqueKey: ['video_id', 'date'],
     tags: ['standard'],
-    dependencies: ['video', 'channel_accepted', 'video_latest']
+    dependencies: ['video', 'channel_accepted', 'video_latest', 'date']
 }
 
 -- video_stats_daily spreads video views from our patchy as-at-time records into an estimate for views on each day
