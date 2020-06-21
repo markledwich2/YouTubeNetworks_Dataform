@@ -30,6 +30,7 @@ with v2_flat as (
        , to_channel_title
        , to_video_id
        , to_video_title
+       , source
        , rank
        , r.updated
        , 'v2'::string as collection_version
@@ -51,6 +52,7 @@ with v2_flat as (
        , to_channel_title
        , to_video_id
        , to_video_title
+       , 'Web'::string as source
        , rank
        , updated
        , 'v1'::string as collection_version
