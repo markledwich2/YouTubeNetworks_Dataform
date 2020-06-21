@@ -1,6 +1,7 @@
 config {
     type: 'view',
-    dependencies: ['channel_latest']
+    dependencies: ['channel_latest'],
+    tags: ['standard']
 }
 
 select * from channel_latest
