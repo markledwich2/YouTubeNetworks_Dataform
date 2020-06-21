@@ -9,6 +9,7 @@ with v2_flat as (
   select v:FromChannelId :: string as from_channel_id
        , v:FromVideoId::string as from_video_id
        , v:FromVideoTitle::string as from_video_title
+       , v:ToChannelId::string as to_channel_id
        , v:ToChannelTitle::string as to_channel_title
        , v:ToVideoId::string as to_video_id
        , v:ToVideoTitle::string as to_video_title
@@ -26,7 +27,8 @@ with v2_flat as (
        , fc.channel_title as from_channel_title
        , from_video_id
        , from_video_title
-       , coalesce(tc_title.channel_id, tc_vid.channel_id) as to_channel_id
+       -- with ol methods we didn't get the channel id, so fall back to looking up channels in out dataset
+       , coalesce(to_channel_id, tc_title.channel_id, tc_vid.channel_id) as to_channel_id
        , to_channel_title
        , to_video_id
        , to_video_title
