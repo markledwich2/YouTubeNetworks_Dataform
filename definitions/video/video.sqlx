@@ -5,53 +5,53 @@ config {
 }
 
 with v as (
-    select v :VideoId :: string                    as video_id,
-           v :Title :: string                      as video_title,
-           v :ChannelId :: string                  as channel_id,
-           v :ChannelTitle :: string               as channel_title,
-           v :UploadDate :: timestamp_ntz          as upload_date,
-           v :Statistics :ViewCount :: int         as views,
-           v :Statistics :AverageRating :: float   as avg_rating,
-           v :Statistics :LikeCount :: int         as likes,
-           v :Statistics :DislikeCount :: int      as dislikes,
-           v :Description :: string                as description,
-           v :Duration :: time                     as duration,
-           v :Keywords :: array                    as keywords,
-           v :Thumbnails :HighResUrl :: string     as thumb_high,
-           v :Thumbnails :StandardResUrl :: string as thumb_standard,
-           v :Thumbnails :LowResUrl :: string      as thumb_low,
-           iff(v :Updated:: timestamp_ntz = '0001-01-01'::timestamp_ntz, '2019-11-05'::timestamp_ntz,
-               v :Updated:: timestamp_ntz)         as updated,
-           'v2'::string as collection_version
-    from video_stage
-),
-     v_dbv1 as (
-         select video_id,
-                video_title,
-                channel_id,
-                channel_title,
-                upload_date,
-                views,
-                null::float                         as avg_rating,
-                likes,
-                dislikes,
-                description,
-                null::time                          as duration,
-                null::array                         as keywords,
-                null::string                        as thumb_high,
-                null::string                        as thumb_standard,
-                null::string                        as thumb_low,
-                updated,
-                'v1'::string as collection_version
-         from dbv1_video v
-         where video_id is not null
-     ),
-     u as (
-         select *
-         from v
-         union all
-         (select * from v_dbv1)
-     )
+  select v:VideoId::string as video_id
+       , v:Title::string as video_title
+       , v:ChannelId::string as channel_id
+       , v:ChannelTitle::string as channel_title
+       , v:UploadDate::timestamp_ntz as upload_date
+       , v:Statistics:ViewCount::int as views
+       , v:Statistics:AverageRating::float as avg_rating
+       , v:Statistics:LikeCount::int as likes
+       , v:Statistics:DislikeCount::int as dislikes
+       , v:Description::string as description
+       , v:Duration::time as duration
+       , v:Keywords::array as keywords
+       , coalesce(v:Thumbnail:HighResUrl::string, v:Thumbnails:HighResUrl::string) as thumb_high
+       , coalesce(v:Thumbnail:StandardResUrl::string, v:Thumbnails:StandardResUrl::string) as thumb_standard
+       , coalesce(v:Thumbnail:LowResUrl::string, v:Thumbnails:LowResUrl::string) as thumb_low
+       , iff(v:Updated::timestamp_ntz='0001-01-01'::timestamp_ntz, '2019-11-05'::timestamp_ntz,
+             v:Updated::timestamp_ntz) as updated
+       , 'v2'::string as collection_version
+  from video_stage
+)
+   , v_dbv1 as (
+  select video_id
+       , video_title
+       , channel_id
+       , channel_title
+       , upload_date
+       , views
+       , null::float as avg_rating
+       , likes
+       , dislikes
+       , description
+       , null::time as duration
+       , null::array as keywords
+       , null::string as thumb_high
+       , null::string as thumb_standard
+       , null::string as thumb_low
+       , updated
+       , 'v1'::string as collection_version
+  from dbv1_video v
+  where video_id is not null
+)
+   , u as (
+  select *
+  from v
+  union all
+  (select * from v_dbv1)
+)
 select u.*
 from u
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
