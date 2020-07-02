@@ -12,5 +12,3 @@ select v:ChannelId::string as channel_id
 , v:SoftTags::array as tags
 , v:Updated::timestamp_ntz as updated
        from channel_review_stage
-
-

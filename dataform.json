@@ -2,5 +2,5 @@
     "defaultSchema": "PUBLIC",
     "assertionSchema": "dataform_assertions",
     "warehouse": "snowflake",
-    "default_database":"yt"
+    "defaultDatabase":"YT_ML"
 }
