@@ -6,13 +6,6 @@
         "branch": "master"
       },
       "configOverride": {}
-    },
-    {
-      "name": "ml-dev2",
-      "gitRef": "master",
-      "configOverride": {
-        "default_database":"yt_ml"
-      }
     }
   ]
 }
