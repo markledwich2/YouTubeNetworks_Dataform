@@ -1,0 +1,16 @@
+config {
+    type:'table',
+    tags:["standard"]
+}
+
+select v:ChannelId::string as channel_id
+, v:Email::string as email
+, v:LR::string as lr
+, v:MainChannelId::string as main_channel_id
+, v:Notes::string as notes
+, v:Relevance::number/10 as relevance
+, v:SoftTags::array as tags
+, v:Updated::timestamp_ntz as updated
+       from channel_review_stage
+
+
