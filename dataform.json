@@ -1,6 +1,6 @@
 {
+    "warehouse": "snowflake",
     "defaultSchema": "PUBLIC",
     "assertionSchema": "dataform_assertions",
-    "warehouse": "snowflake",
-    "defaultDatabase":"YT_ML"
+    "defaultDatabase":"yt"
 }

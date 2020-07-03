@@ -3,12 +3,29 @@ config {
     tags:["standard"]
 }
 
-select v:ChannelId::string as channel_id
-, v:Email::string as email
-, v:LR::string as lr
-, v:MainChannelId::string as main_channel_id
-, v:Notes::string as notes
-, v:Relevance::number/10 as relevance
-, v:SoftTags::array as tags
-, v:Updated::timestamp_ntz as updated
-       from channel_review_stage
+with latest_review as (
+  select v:ChannelId::string as channel_id
+       , v: Email::string as email
+       , v:LR::string as lr
+       , v:MainChannelId::string as main_channel_id
+       , v:Notes::string as notes
+       , v:Relevance::number/10 as relevance
+       , v:SoftTags::array as tags
+       , v:Updated::timestamp_ntz as updated
+        , decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrNum
+  from channel_review_stage
+    qualify row_number() over (partition by email, channel_id order by updated desc)=1
+)
+   , r2 as (
+  select channel_id
+       , array_agg(email) as reviewers
+       , array_agg(object_construct('email', email, 'lr', lr, 'main_channel_id', main_channel_id, 'notes', notes, 'relevance', relevance, 'tags', tags)) as reviews
+       , decode(round(avg(lrNum)), -1, 'L', 0, 'C', 1, 'R') as lr
+      , avg(relevance) as relevance
+
+  from latest_review
+     group by 1
+)
+select r2.*, c.channel_title
+from r2
+left join channel_latest c on r2.channel_id = c.channel_id
