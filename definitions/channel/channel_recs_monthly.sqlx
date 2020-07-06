@@ -44,10 +44,6 @@ with cr as (
          , tc.media as to_media
          , fc.ideology as from_ideology
          , tc.ideology as to_ideology
-         , fc.manoel as from_manoel
-         , tc.manoel as to_manoel
-         , fc.ain as from_ain
-         , tc.ain as to_ain
          , fc.lr as from_lr
          , tc.lr as to_lr
     from semetrical cc

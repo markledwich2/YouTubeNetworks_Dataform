@@ -1,5 +1,5 @@
 var categories = [
-    'ideology', 'media', 'lr', 'manoel', 'ain'
+    'ideology', 'media', 'lr'
 ]
 
 

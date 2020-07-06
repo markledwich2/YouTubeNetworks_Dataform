@@ -95,6 +95,7 @@ with c as (
   from c
          left join mc on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
+         
 )
 select *
 from ch

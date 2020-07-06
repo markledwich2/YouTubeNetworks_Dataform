@@ -1,31 +1,67 @@
 config {
     type:'table',
-    tags:["standard"]
+    tags:["standard"],
+    dependencies: []
 }
-
 with latest_review as (
-  select v:ChannelId::string as channel_id
-       , v: Email::string as email
-       , v:LR::string as lr
-       , v:MainChannelId::string as main_channel_id
-       , v:Notes::string as notes
-       , v:Relevance::number/10 as relevance
-       , v:SoftTags::array as tags
-       , v:Updated::timestamp_ntz as updated
-        , decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrNum
-  from channel_review_stage
-    qualify row_number() over (partition by email, channel_id order by updated desc)=1
+  select *
+       , count(*) over (partition by channel_id) as review_count
+  from (
+         select v:ChannelId::string as channel_id
+              , v: Email::string as email
+              , v:LR::string as lr
+              , v:MainChannelId::string as main_channel_id
+              , v:Notes::string as notes
+              , v:Relevance::number/10 as relevance
+              , v:Updated::timestamp_ntz as updated
+              , decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrnum
+              , v:SoftTags::array as tags
+         from channel_review_stage
+           qualify row_number() over (partition by email, channel_id order by updated desc)=1
+       )
+)
+   -- for each channel, calculate the final list of tags with a majoirty vote
+   , tags_agg as (
+  select channel_id, array_agg(tag) within group ( order by tag ) as tags
+  from (
+         select channel_id
+              , t.value::string as tag
+         from latest_review
+            , table (flatten(tags)) t
+         group by channel_id, tag
+         having count(*)>=any_value(review_count)/2
+       )
+  group by channel_id
 )
    , r2 as (
   select channel_id
+       , count(*) as review_count
        , array_agg(email) as reviewers
-       , array_agg(object_construct('email', email, 'lr', lr, 'main_channel_id', main_channel_id, 'notes', notes, 'relevance', relevance, 'tags', tags)) as reviews
-       , decode(round(avg(lrNum)), -1, 'L', 0, 'C', 1, 'R') as lr
-      , avg(relevance) as relevance
-
-  from latest_review
-     group by 1
+       , array_agg(object_construct(
+      'email', email,
+      'lr', lr,
+      'main_channel_id', main_channel_id,
+      'notes', notes,
+      'relevance', relevance,
+      'tags', tags)) as reviews
+       , decode(round(avg(lrnum)), -1, 'L', 0, 'C', 1, 'R') as lr
+       , avg(relevance) as relevance
+  from latest_review r
+  group by 1
 )
-select r2.*, c.channel_title
-from r2
-left join channel_latest c on r2.channel_id = c.channel_id
+   , cl as (
+  select v:ChannelId::string as channel_id
+       , v:ChannelTitle::string as channel_title
+  from channel_stage
+    qualify row_number() over (partition by channel_id order by v:Updated::timestamp_ntz desc)=1
+)
+   , s as (
+  select c.channel_title
+       , coalesce(t.tags, array_construct()) as tags
+       , r2.*
+  from r2
+         left join cl c on r2.channel_id=c.channel_id
+         left join tags_agg t on r2.channel_id=t.channel_id
+)
+select *
+from s
