@@ -4,20 +4,17 @@ config {
   dependencies: ['video_latest' ]
 }
 
+
+
 with c as (
   select v:ChannelId::string as channel_id
        , v:ChannelTitle::string as channel_title
        , v:MainChannelId::string as main_channel_id
        , v:Description::string as channel_decription
        , v:LogoUrl::string as logo_url
-       , v:Relevance::float as relevance
-       , v:LR::string as lr
        , v:Subs::int as subs
        , v:ChannelViews::int as channel_views
        , v:Country::string as country
-       , v:HardTags::array as hard_tags
-       , v:SoftTags::array as soft_tags
-       , v:UserChannels::array as user_channels
        , v:Updated::timestamp_ntz as updated
        , v:StatusMessage::string as status_msg
        , v:ReviewStatus::string as review_status
@@ -25,6 +22,7 @@ with c as (
        , v:Keywords::string as keywords
        , v:DefaultLanguage::string as default_langauge
        , v:FeaturedChannelIds::array as featured_channels
+       , v:Description::string as description
   from channel_stage
 )
    , cv as (
@@ -54,13 +52,15 @@ with c as (
        , cv.day_range
        , cv.channel_lifetime_daily_views
        , cv.avg_minutes
-       , channel_lifetime_daily_views*c.relevance as channel_lifetime_daily_views_relevant
+       , channel_lifetime_daily_views*cr.relevance as channel_lifetime_daily_views_relevant
        , coalesce(mc.channel_title, c.channel_title) as main_channel_title
-       , array_cat(coalesce(soft_tags, array_construct()), coalesce(hard_tags, array_construct())) as tags
+       , cr.tags as tags
+       , cr.lr
+       , cr.relevance
+       , cr.review_count
        , case -- evaluated top to bottom. Start with most stand-out/defining tags
            when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
            when array_contains('MRA'::variant, tags) then 'MRA'
-    --when main_channel_id in ('UCpwvZwUam-URkxB7g4USKpg') then 'Russian State'
            when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
            when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
            when array_contains('Libertarian'::variant, tags) then 'Libertarian'
@@ -71,7 +71,7 @@ with c as (
            when array_contains('Socialist'::variant, tags) then 'Socialist'
 
            when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
-           when c.lr in ('C','L') and
+           when cr.lr in ('C','L') and
                 arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags)
              then 'Center/Left MSM'
            when array_contains('PartisanLeft'::variant, tags) then 'Partisan Left'
@@ -84,18 +84,10 @@ with c as (
            when array_contains('MissingLinkMedia'::variant, tags) then 'Missing Link Media'
            else 'YouTube'
     end as media
-       , case
-           when array_contains('ManoelControl'::variant, tags) then 'Control'
-           when array_contains('ManoelAltRight'::variant, tags) then 'Alt-right'
-           when array_contains('ManoelAltLite'::variant, tags) then 'Alt-light'
-           when array_contains('ManoelIDW'::variant, tags) then 'IDW'
-           else null
-    end as manoel
-       , iff(array_contains('AIN'::variant, tags), 'AIN', null) as ain
   from c
          left join mc on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
-         
+         left join channel_review cr on c.channel_id=cr.channel_id
 )
 select *
 from ch
