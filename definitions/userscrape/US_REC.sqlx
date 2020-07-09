@@ -1,21 +1,22 @@
 config {
   type: "incremental",
-  tags:["userscrape"],
+  tags:["standard"],
   dependencies:[ ]
 }
 
-select v: account::string as user_email
-     , v:channel::string as from_channel_title
-     , v:channel_id::string as from_channel_id
-     , v:title::string as from_video_title
-     , v:trial::string as trial_id
-     , v:video_id::string as from_video_id
-     , v:updated::timestamp_ntz as updated
-     , v:unavailable:error::string error
-     , v:unavailable:sub_error::string sub_error
-     , r.value:id::string as to_video_id
-     , r.value:title::string as to_video_title
-     , r.value:personalized::boolean as personalized
-from us_rec_stage
-   , lateral flatten(input => v:recommendations) r
-${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
+  select v: account::string as account
+       , v:channel::string as from_channel_title
+       , v:channel_id::string as from_channel_id
+       , v:video_id::string as from_video_id
+       , v:title::string as from_video_title
+       , v:unavailable::string as unavailable
+       , v:updated::timestamp_ntz as updated
+       , r.value:title::string as to_video_title
+       , r.value:videoId::string as to_video_id
+       , r.value:personalized::boolean as personalized
+       , r.value:rank::string as rank
+       , r.value:channelId::string as to_channel_id
+       , r.value:channelTitle::string as to_channel_title
+  from us_rec_stage
+     , lateral flatten(input => v:recommendations) r
+${ when(incremental(), `where updated > (select max(updated) from ${self()})`) }

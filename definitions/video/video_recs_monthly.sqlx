@@ -8,6 +8,7 @@ config {
 with vr as (
   select from_video_id
        , to_video_id
+       , account -- the user account used to collect recommendations (null for anon)
        , date_trunc(month, r.updated)::date as rec_month
        , any_value(from_channel_id) as from_channel_id
        , any_value(to_channel_id) as to_channel_id
@@ -24,18 +25,19 @@ with vr as (
        , rec_view_portion * 10 as impressions
        , impressions * avg(fc.relevance) as relevant_impressions
        , max(r.updated) as max_rec_updated
+
   from rec r
          // get closest video stats
          left join video_stats_monthly fm
                    on fm.video_id = r.from_video_id and fm.month = date_trunc(month, r.updated)::date
          left join channel_accepted fc on fc.channel_id = r.from_channel_id
 
-  ${ when(incremental(), `where rec_month >= (select max(rec_month) from ${self()})`) }
+  --${ when(incremental(), `where rec_month >= (select max(rec_month) from ${self()})`) }
 
-  group by 1, 2, 3
+  group by 1, 2, 3, 4
 
          -- incremental. update any video combo newer or in the latest month
-  
+
 )
    , s as (
   select vr.*

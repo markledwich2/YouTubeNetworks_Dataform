@@ -1,9 +1,8 @@
 config {
   type: "table",
   tags: ["standard"],
-  dependencies: ['video_latest' ]
+  dependencies: ['video_latest', 'channel_review' ]
 }
-
 
 
 with c as (

@@ -1,10 +1,9 @@
 config {
   type: "incremental",
   tags:["standard"],
-  dependencies:["channel_latest", "dbv1_rec" ]
+  dependencies:["channel_latest", "dbv1_rec", "us_rec" ]
 }
 
--- rec: union rec v1 & v2
 with v2_flat as (
   select v:FromChannelId :: string as from_channel_id
        , v:FromVideoId::string as from_video_id
@@ -36,6 +35,7 @@ with v2_flat as (
        , rank
        , r.updated
        , 'v2'::string as collection_version
+       , null as account
   from v2_flat r
          left join channel_latest fc on r.from_channel_id=fc.channel_id
          left join video_latest tv on r.to_video_id=tv.video_id
@@ -58,10 +58,25 @@ with v2_flat as (
        , rank
        , updated
        , 'v1'::string as collection_version
+       , null as account
   from dbv1_rec
   where rank<=20
+  /*union all
+  select from_channel_id
+       , from_channel_title
+       , from_video_id
+       , from_video_title
+       , to_channel_id
+       , to_channel_title
+       , to_video_id
+       , to_video_title
+       , 'UserScrape'::string as source
+       , rank
+       , updated
+       , 'v2'::string as collection_version
+       , account
+  from us_rec*/
 )
 select *, date_trunc('day', updated)::date as updated_day
 from u
-
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
