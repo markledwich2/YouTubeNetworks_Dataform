@@ -32,6 +32,7 @@ select c.channel_id
      , lr
      , tags
      , ideology
+     , media
      , logo_url
 from channel_accepted c
          left join cr on c.channel_id = cr.channel_id
