@@ -35,4 +35,5 @@ select c.channel_id
      , logo_url
 from channel_accepted c
          left join cr on c.channel_id = cr.channel_id
-where cr.meets_subsviews_criteria = true
+where
+      (c.subs > 10000 or cr.meets_subsviews_criteria)
