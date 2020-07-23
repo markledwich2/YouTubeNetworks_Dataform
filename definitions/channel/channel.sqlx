@@ -79,7 +79,7 @@ with c as (
            else 'Unclassified'
     end as ideology
        , case
-           when arrays_overlap(array_construct('Mainstream News', 'TV'), tags) then 'Mainstream Media'
+           when arrays_overlap(array_construct('Mainstream News', 'TV', 'LateNightTalkShow'), tags) then 'Mainstream Media'
            when array_contains('MissingLinkMedia'::variant, tags) then 'Missing Link Media'
            else 'YouTube'
     end as media
