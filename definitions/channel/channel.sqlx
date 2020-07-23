@@ -4,7 +4,6 @@ config {
   dependencies: ['video_latest', 'channel_review' ]
 }
 
-
 with c as (
   select v:ChannelId::string as channel_id
        , v:ChannelTitle::string as channel_title
@@ -36,6 +35,7 @@ with c as (
                              , to_date)), 1) as day_range
        , sum(views)/day_range as channel_lifetime_daily_views
        , avg(datediff(minutes, '00:00:00'::time, duration::time)) as avg_minutes
+
   from video_latest
   group by channel_id
 )
@@ -83,10 +83,14 @@ with c as (
            when array_contains('MissingLinkMedia'::variant, tags) then 'Missing Link Media'
            else 'YouTube'
     end as media
+       , subs>10000 or channel_views>(
+                                       select avg(channel_views/subs)
+                                       from channel
+                                       where subs>0
+                                     )*10000 as meets_sub_criteria
   from c
          left join mc on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
          left join channel_review cr on c.channel_id=cr.channel_id
 )
-select *
-from ch
+select * from ch
