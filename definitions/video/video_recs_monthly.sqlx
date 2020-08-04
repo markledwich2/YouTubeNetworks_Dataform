@@ -8,7 +8,7 @@ config {
 with vr as (
   select from_video_id
        , to_video_id
-       , account -- the user account used to collect recommendations (null for anon)
+       --, account -- the user account used to collect recommendations (null for anon)
        , date_trunc(month, r.updated)::date as rec_month
        , any_value(from_channel_id) as from_channel_id
        , any_value(to_channel_id) as to_channel_id
@@ -34,7 +34,7 @@ with vr as (
 
   --${ when(incremental(), `where rec_month >= (select max(rec_month) from ${self()})`) }
 
-  group by 1, 2, 3, 4
+  group by 1, 2, 3
 
          -- incremental. update any video combo newer or in the latest month
 
