@@ -5,4 +5,5 @@ config {
 }
 
 select * from channel_latest
-where review_status is null or review_status in ('ManualAccepted', 'AlgoAccepted')
+where meets_review_criteria
+--review_status is null or review_status in ('ManualAccepted', 'AlgoAccepted')
