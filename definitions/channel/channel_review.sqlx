@@ -12,11 +12,56 @@ with review as (
        , v:Notes::string as notes
        , v:Relevance::number/10 as relevance
        , v:Updated::timestamp_ntz as updated
-       , decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrnum
        , v:SoftTags::array as tags
-  from channel_review_stage
+  from public.channel_review_stage
 )
 
+   , sam_reviews as (
+  select channel_id
+       , array_agg(tag) as tags
+       , any_value(lr) as lr
+       , max(updated) as updated
+  from (
+         select channel_id
+              , first_value(lr) over (partition by channel_id order by lr_conf desc) lr
+              , case
+                  when tag in ('MainstreamNews','MainstreamMedia') then 'Mainstream News'
+                  else tag
+           end as tag
+              , updated
+         from (
+                select channel_id
+                     , iff(tag in ('L','C','R'), tag, null) as lr
+                     , iff(lr is null, 0, confidence) as lr_conf
+                     , iff(tag in ('L','C','R','YouTube'), null, tag) as tag
+                     , updated
+                from channel_review_sam_raw
+              )
+       )
+  group by channel_id
+)
+ -- union human and algo reviews
+   , all_reviews as (
+  select *, decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrnum
+  from (
+         select *
+              , 0 as reviews_algo
+         from review
+         union all
+         select channel_id
+              , 'sam_algo' as email
+              , lr
+              , null as main_channel_id
+              , 'predicted by sams algorythm' as notes
+              , 1 as relevance
+              , updated
+              , tags
+              , 1 as reviews_algo
+         from sam_reviews
+       )
+)
+   
+   -- find the first date a tag has been introduced. Used when working out majority tags (ignore reviews pre-tag)
    , tag_stats as (
   select tag, date_trunc(minutes, min(updated)) as min_updated
   from (
@@ -26,16 +71,20 @@ with review as (
        )
   group by tag
 )
+   
+   -- humans sometimes update their reviews, use the latest
    , latest_review as (
   select *
        , count(*) over (partition by channel_id) as review_count
   from (
          select *
-         from review
+         from all_reviews
            qualify row_number() over (partition by email
              , channel_id order by updated desc)=1
        )
 )
+   
+   -- flatten, o there is a row for each tag
    , tags_flat as (
   select channel_id
        , f.tag
@@ -55,7 +104,7 @@ with review as (
          left join tag_stats ts on f.tag=ts.tag
 )
 
--- for each channel, calculate the final list of tags with a majority vote
+  -- for each channel, calculate the final list of tags with a majority vote
    , tags_agg as (
   select channel_id
        , array_agg(tag) within group ( order by tag ) as tags
@@ -64,13 +113,16 @@ with review as (
               , tag
          from tags_flat
          group by channel_id, tag
-         having count(*)>=any_value(relevant_reviews)/2
+         having count(*)>any_value(relevant_reviews)/2
        )
   group by channel_id
 )
+   
+   -- group reviews by channel
    , r2 as (
   select channel_id
-       , count(*) as review_count
+       , count(*) as reviews_all
+       , sum(reviews_algo) as reviews_algo
        , array_agg(email) as reviewers
        , array_agg(object_construct(
       'email', email
@@ -84,19 +136,22 @@ with review as (
   from latest_review r
   group by 1
 )
+   
+   -- latest channel (don't use the channel table so it can depend on this table)
    , cl as (
   select v:ChannelId::string as channel_id
        , v:ChannelTitle::string as channel_title
   from channel_stage
     qualify row_number() over (partition by channel_id order by v:Updated::timestamp_ntz desc)=1
 )
+   
    , s as (
   select c.channel_title
-       , coalesce(t.tags
-    , array_construct()) as tags
+       , coalesce(t.tags, array_construct()) as tags
        , r2.*
   from r2
          left join cl c on r2.channel_id=c.channel_id
          left join tags_agg t on r2.channel_id=t.channel_id
 )
-select * from s
+select *
+from s

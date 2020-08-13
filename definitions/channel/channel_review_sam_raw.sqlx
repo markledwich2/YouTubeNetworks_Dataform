@@ -1,0 +1,11 @@
+config {
+  type: "view",
+  tags: "standard"
+}
+
+
+select to_date(regexp_substr(metadata$filename, '_([0-9]+)_preds.txt', 1, 1, 'e'), 'YYYYMMDD')::timestamp_ntz as updated
+       , $1::string as channel_id
+       , $2::string as tag
+       , $3::double as confidence
+  from @public.yt_data/import/sam_reviews (file_format => tsv)

@@ -56,23 +56,21 @@ with c as (
        , cr.tags as tags
        , cr.lr
        , cr.relevance
-       , cr.review_count
+       , cr.reviews_all
+       , cr.reviews_algo
        , case -- evaluated top to bottom. Start with most stand-out/defining tags
            when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
            when array_contains('MRA'::variant, tags) then 'MRA'
-           when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
-           when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
-           when array_contains('Libertarian'::variant, tags) then 'Libertarian'
-           when array_contains('AntiSJW'::variant, tags)
-             and arrays_overlap(array_construct('Provocateur', 'PartisanRight'), tags)
-             then 'Provocative Anti-SJW'
+           when array_contains('QAnon'::variant, tags) then 'QAnon'
            when array_contains('AntiSJW'::variant, tags) then 'Anti-SJW'
            when array_contains('Socialist'::variant, tags) then 'Socialist'
-
+           when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
+           when array_contains('Black'::variant, tags) then 'Black'
+           when array_contains('LGBT'::variant, tags) then 'LGBT'
+           when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
+           when array_contains('Libertarian'::variant, tags) then 'Libertarian'
            when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
-           when cr.lr in ('C','L') and
-                arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags)
-             then 'Center/Left MSM'
+           when cr.lr in ('C','L') and arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags) then 'Center/Left MSM'
            when array_contains('PartisanLeft'::variant, tags) then 'Partisan Left'
            when array_contains('PartisanRight'::variant, tags) then 'Partisan Right'
            when array_contains('AntiTheist'::variant, tags) then 'Anti-theist'
@@ -88,9 +86,11 @@ with c as (
                                        from channel
                                        where subs>0
                                      )*10000 as meets_sub_criteria
+       , cr.reviews_all>=1 and cr.lr is not null and cr.relevance>0.3 as meets_review_criteria
   from c
          left join mc on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
          left join channel_review cr on c.channel_id=cr.channel_id
 )
-select * from ch
+select *
+from ch
