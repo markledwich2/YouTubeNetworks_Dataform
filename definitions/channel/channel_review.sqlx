@@ -34,9 +34,11 @@ with review as (
                      , iff(tag in ('L','C','R'), tag, null) as lr
                      , iff(lr is null, 0, confidence) as lr_conf
                      , iff(tag in ('L','C','R','YouTube'), null, tag) as tag
+                     , confidence
                      , updated
                 from channel_review_sam_raw
               )
+              where confidence >= 0.5
        )
   group by channel_id
 )
