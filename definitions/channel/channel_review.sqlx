@@ -48,6 +48,7 @@ with review as (
        , decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrnum
        , iff(reviews_algo=0, lrnum, null) as lrnum_human
        , iff(reviews_algo=0, relevance, null) as relevance_human
+       , iff(reviews_algo=0, 1, 0.9) as weight -- on a tie, humans should win
   from (
          select *
               , 0 as reviews_algo
@@ -97,13 +98,16 @@ with review as (
        , updated
        , ts.min_updated
        , reviews_algo
-       , (select count(*) from latest_review r where r.channel_id=f.channel_id and r.updated>=ts.min_updated) as relevant_reviews
+       , weight
+       , (select sum(weight) from latest_review r where r.channel_id=f.channel_id and r.updated>=ts.min_updated) as relevant_reviews
+       , (select sum(weight) from latest_review r where r.channel_id=f.channel_id and r.updated>=ts.min_updated and r.reviews_algo=0) as relevant_reviews_human
   from (
          -- flatten to row per tag & filter out stale reviews
          select channel_id
               , t.value::string as tag
               , r.email
               , r.reviews_algo
+              , r.weight
               , updated
          from latest_review r
             , table (flatten(tags)) t
@@ -120,7 +124,7 @@ with review as (
               , tag
          from tags_flat
          group by channel_id, tag
-         having count(*)>any_value(relevant_reviews)/2
+         having sum(weight)>any_value(relevant_reviews)/2
        )
   group by channel_id
 )
@@ -135,7 +139,7 @@ with review as (
          from tags_flat
          where reviews_algo=0
          group by channel_id, tag
-         having count(*)>any_value(relevant_reviews)/2
+         having sum(weight)>any_value(relevant_reviews_human)/2
        )
   group by channel_id
 )
