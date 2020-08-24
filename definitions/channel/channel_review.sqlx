@@ -38,13 +38,16 @@ with review as (
                      , updated
                 from channel_review_sam_raw
               )
-              where confidence >= 0.5
+         where confidence>=0.5
        )
   group by channel_id
 )
- -- union human and algo reviews
+   -- union human and algo reviews
    , all_reviews as (
-  select *, decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrnum
+  select *
+       , decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrnum
+       , iff(reviews_algo=0, lrnum, null) as lrnum_human
+       , iff(reviews_algo=0, relevance, null) as relevance_human
   from (
          select *
               , 0 as reviews_algo
@@ -62,7 +65,7 @@ with review as (
          from sam_reviews
        )
 )
-   
+
    -- find the first date a tag has been introduced. Used when working out majority tags (ignore reviews pre-tag)
    , tag_stats as (
   select tag, date_trunc(minutes, min(updated)) as min_updated
@@ -73,7 +76,7 @@ with review as (
        )
   group by tag
 )
-   
+
    -- humans sometimes update their reviews, use the latest
    , latest_review as (
   select *
@@ -85,7 +88,7 @@ with review as (
              , channel_id order by updated desc)=1
        )
 )
-   
+
    -- flatten, o there is a row for each tag
    , tags_flat as (
   select channel_id
@@ -93,12 +96,14 @@ with review as (
        , email
        , updated
        , ts.min_updated
+       , reviews_algo
        , (select count(*) from latest_review r where r.channel_id=f.channel_id and r.updated>=ts.min_updated) as relevant_reviews
   from (
          -- flatten to row per tag & filter out stale reviews
          select channel_id
               , t.value::string as tag
               , r.email
+              , r.reviews_algo
               , updated
          from latest_review r
             , table (flatten(tags)) t
@@ -106,8 +111,8 @@ with review as (
          left join tag_stats ts on f.tag=ts.tag
 )
 
-  -- for each channel, calculate the final list of tags with a majority vote
-   , tags_agg as (
+   -- for each channel, calculate the final list of tags with a majority vote
+   , tags_agg_all as (
   select channel_id
        , array_agg(tag) within group ( order by tag ) as tags
   from (
@@ -119,7 +124,22 @@ with review as (
        )
   group by channel_id
 )
-   
+
+   -- as with tags_agg_all, but only humans. used for training other algo's without them influencing eachother
+   , tags_agg_human as (
+  select channel_id
+       , array_agg(tag) within group ( order by tag ) as tags
+  from (
+         select channel_id
+              , tag
+         from tags_flat
+         where reviews_algo=0
+         group by channel_id, tag
+         having count(*)>any_value(relevant_reviews)/2
+       )
+  group by channel_id
+)
+
    -- group reviews by channel
    , r2 as (
   select channel_id
@@ -134,11 +154,13 @@ with review as (
     , 'relevance', relevance
     , 'tags', tags)) as reviews
        , decode(round(avg(lrnum)), -1, 'L', 0, 'C', 1, 'R') as lr
+       , decode(round(avg(lrnum_human)), -1, 'L', 0, 'C', 1, 'R') as lr_human
        , avg(relevance) as relevance
+       , avg(relevance_human) as relevance_human
   from latest_review r
   group by 1
 )
-   
+
    -- latest channel (don't use the channel table so it can depend on this table)
    , cl as (
   select v:ChannelId::string as channel_id
@@ -146,14 +168,16 @@ with review as (
   from channel_stage
     qualify row_number() over (partition by channel_id order by v:Updated::timestamp_ntz desc)=1
 )
-   
+
    , s as (
   select c.channel_title
-       , coalesce(t.tags, array_construct()) as tags
+       , coalesce(ta.tags, array_construct()) as tags
+       , coalesce(th.tags, array_construct()) as tags_human
        , r2.*
   from r2
          left join cl c on r2.channel_id=c.channel_id
-         left join tags_agg t on r2.channel_id=t.channel_id
+         left join tags_agg_all ta on r2.channel_id=ta.channel_id
+         left join tags_agg_human th on r2.channel_id=th.channel_id
 )
 select *
 from s
