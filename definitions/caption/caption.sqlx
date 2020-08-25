@@ -9,8 +9,8 @@ with latest as (
        , v:VideoId::string as video_id
        , v:Captions::array as captions
   from caption_stage s
-  qualify row_number() over (partition by video_id order by updated desc) = 1
   ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+  qualify row_number() over (partition by video_id order by updated desc) = 1
 )
    , flattened as (
   select *
