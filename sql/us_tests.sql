@@ -33,6 +33,6 @@ with
     qualify rand_views>last_views_running and rand_views<=views_running
 )
 
-select *
+select video_id, video_title, channel_id, channel_title, tag
 from v2
 order by tag

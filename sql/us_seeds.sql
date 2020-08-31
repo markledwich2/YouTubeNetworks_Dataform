@@ -44,12 +44,12 @@ with c_rand as (
 )
    , v4 as (
   select tag
-       , row_number() over (partition by tag order by gen_no desc) as ideology_rank -- arbitrarily chose x within and idelogy
+       , row_number() over (partition by tag order by gen_no desc) as tag_rank -- arbitrarily chose x within and idelogy
        , v3.*
   from us_tags t
          left join v3 on array_contains(t.tag::variant, v3.tags)
-    qualify ideology_rank <= :videos_per_tag
+    qualify tag_rank <= :videos_per_tag
 )
-select *
+select video_id, video_title, channel_id, channel_title, tag, tag_rank
 from v4
 order by tag, video_id
