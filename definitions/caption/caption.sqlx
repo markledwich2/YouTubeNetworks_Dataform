@@ -4,46 +4,53 @@ config {
   dependencies:["caption_udf", "video_latest", "channel_latest"]
 }
 
-with c as (
-    select v:Updated::timestamp_ntz as updated
-         , v:VideoId::string as video_id
-         , t.value: Text::string as caption
-         , timeSpanToSeconds(t.value: Offset) as offset_seconds
-         , row_number() over (partition by video_id order by offset_seconds) as caption_no
-    from caption_stage s
-       , lateral flatten(input => v:Captions) t
-    ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+with latest as (
+  select v:Updated::timestamp_ntz as updated
+       , v:VideoId::string as video_id
+       , v:Captions::array as captions
+  from caption_stage s
+  ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+  qualify row_number() over (partition by video_id order by updated desc) = 1
+)
+   , flattened as (
+  select *
+       , t.value: Text::string as caption
+       , timespantoseconds(t.value: Offset) as offset_seconds
+       , row_number() over (partition by video_id order by offset_seconds) as caption_no
+  from latest
+     , lateral flatten(input => captions) t
 )
    , cg as (
-    select video_id
-         , max(updated) as updated
-         , listagg(caption, '\n') within group ( order by offset_seconds asc ) as caption
-         , min(offset_seconds) as offset_seconds
-         , floor(caption_no / 20) as caption_group
-    from c
-    group by video_id, caption_group
+  select video_id
+       , max(updated) as updated
+       , listagg(caption, '\n') within group ( order by offset_seconds asc ) as caption
+       , min(offset_seconds) as offset_seconds
+       , floor(caption_no/20) as caption_group
+  from flattened
+  group by video_id
+         , caption_group
 )
    , v2 as (
-    select cg.video_id || '|' || caption_group as caption_id
-         , cg.*
-         , cl.ideology
-         , cl.media
-         , cl.country
-         , cl.lr
-         , v.upload_date
-         , v.views
-         , v.video_title
-         , v.channel_title
-         , v.channel_id
-         , v.description
-         , array_to_string(v.keywords, ', ') as keywords
-         , v.duration
-         , v.likes
-         , v.dislikes
-         , v.thumb_high
-    from cg
-             left join video_latest v on cg.video_id = v.video_id
-             left join channel_latest cl on v.channel_id = cl.channel_id
+  select cg.video_id||'|'||caption_group as caption_id
+       , cg.*
+       , cl.ideology
+       , cl.media
+       , cl.country
+       , cl.lr
+       , v.upload_date
+       , v.views
+       , v.video_title
+       , v.channel_title
+       , v.channel_id
+       , v.description
+       , array_to_string(v.keywords, ', ') as keywords
+       , v.duration
+       , v.likes
+       , v.dislikes
+       , v.thumb_high
+  from cg
+         left join video_latest v on cg.video_id=v.video_id
+         left join channel_latest cl on v.channel_id=cl.channel_id
 )
 select *
 from v2
