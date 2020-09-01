@@ -1,38 +1,46 @@
-with
-   -- random numbers per ideology
-  rand_id as (
-    select tag, gen_no, uniform(0, 10000000000, random())/10000000000 as rand
-    from (select distinct tag from us_tags) t
-      , (select seq4() as gen_no from table (generator(rowcount => :videos_per_tag)))
-  )
+with rand_id as (
+  select gen_no, uniform(0, 10000000000, random())/10000000000 as rand
+  from (select seq4() as gen_no from table (generator(rowcount => :videos*3)))
+)
 
-   -- recent videos,
+   -- videos with views from the last 7d
    , v1 as (
-  select video_id
-       , video_title
-       , c.channel_id
-       , c.channel_title
-       , views
-       , t.tag
-       , sum(views) over (partition by tag order by views rows unbounded preceding) as views_running
-       , sum(views) over (partition by tag) as views_total
-  from video_latest v
-         inner join channel_accepted c on v.channel_id=c.channel_id
-         left join us_tags t on array_contains(t.tag::variant, c.tags) // row for each UserScrape tag
-  where upload_date>dateadd(day, -90, (select max(upload_date) from video_latest))
+  select *
+       , sum(delta_views) over (order by video_id rows unbounded preceding) as views_running
+       , sum(delta_views) over () as views_total
+  from (
+         select video_id
+              , sum(delta_views) as delta_views
+         from video_stats_daily
+         where updated>dateadd(day, -7, (select max(updated) from video_stats_daily))
+         group by 1
+       )
 )
 
    -- choose tag videos randomly weighted by their views
    , v2 as (
   select v1.*
        , rand*views_total as rand_views
-       , coalesce(lag(views_running) over (partition by v1.tag, gen_no order by views), 0) as last_views_running
+       , coalesce(lag(views_running) over (partition by gen_no order by video_id), 0) as last_views_running
        , gen_no
-  from v1
-         left join rand_id on v1.tag=rand_id.tag
+  from rand_id
+         left join v1
     qualify rand_views>last_views_running and rand_views<=views_running
 )
 
-select video_id, video_title, channel_id, channel_title, tag
-from v2
-order by tag
+   , s as (
+  select v2.video_id
+       , v.channel_title
+       , v.channel_id
+       , v.video_title
+       , v.upload_date
+       , v2.delta_views
+       , v.views
+  from v2
+         inner join video_latest v on v2.video_id=v.video_id
+         inner join channel_latest cl on v.channel_id=cl.channel_id
+    qualify row_number() over (partition by v2.video_id order by v2.video_id)=1
+  limit :videos
+)
+select *
+from s
