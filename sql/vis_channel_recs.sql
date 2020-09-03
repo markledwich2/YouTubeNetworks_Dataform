@@ -2,7 +2,7 @@
 with
      vis_channels as (
        select distinct channel_id from channel_stats_monthly
-       where meets_subsviews_criteria and meets_review_criteria
+       where month between :from and last_day(:to::date, month) and meets_subsviews_criteria and meets_review_criteria
      )
 
      ,r1 as (
@@ -15,7 +15,7 @@ with
   from channel_recs_monthly
   where exists(select * from vis_channels where channel_id = to_channel_id)
     and exists(select * from vis_channels where channel_id = from_channel_id)
-    and rec_month between :from::date and :to::date
+    and rec_month between :from::date and last_day(:to::date, month)
   group by from_channel_id, to_channel_id
 )
    , r2 as (
