@@ -12,29 +12,30 @@ with cr as (
     where month between :from and last_day(:to::date, month)
     group by channel_id
 )
-
-select c.channel_id
-     , channel_title
-     , channel_views
-     , country
-     , relevance
-     , subs
-     , channel_lifetime_daily_views
-     , channel_lifetime_daily_views_relevant
-     , channel_video_views
-     , relevant_impressions_daily
-     , relevant_impressions_in_daily
-     , video_views_daily
-     , relevant_video_views_daily
-     , avg_minutes
-     , from_date
-     , to_date
-     , lr
-     , tags
-     , ideology
-     , media
-     , logo_url
-from channel_accepted c
-         left join cr on c.channel_id = cr.channel_id
-where
-      (c.subs > 10000 or cr.meets_subsviews_criteria)
+, s as (
+  select c.channel_id
+       , channel_title
+       , channel_views
+       , country
+       , relevance
+       , subs
+       , channel_lifetime_daily_views
+       , channel_lifetime_daily_views_relevant
+       , channel_video_views
+       , relevant_impressions_daily
+       , relevant_impressions_in_daily
+       , video_views_daily
+       , relevant_video_views_daily
+       , avg_minutes
+       , from_date
+       , to_date
+       , lr
+       , tags
+       , ideology
+       , media
+       , logo_url
+  from channel_accepted c
+         left join cr on c.channel_id=cr.channel_id
+  where cr.meets_subsviews_criteria
+)
+select * from s
