@@ -6,11 +6,10 @@ with rand_id as (
    -- videos with views from the last 7d
    , v1 as (
   select *
-       , sum(delta_views) over (order by video_id rows unbounded preceding) as views_running
-       , sum(delta_views) over () as views_total
+       , sum(views) over (order by video_id rows unbounded preceding) as views_running
+       , sum(views) over () as views_total
   from (
-         select video_id
-              , sum(delta_views) as delta_views
+         select video_id, sum(views) as views
          from video_stats_daily
          where updated>dateadd(day, -7, (select max(updated) from video_stats_daily))
          group by 1
@@ -34,7 +33,7 @@ with rand_id as (
        , v.channel_id
        , v.video_title
        , v.upload_date
-       , v2.delta_views
+       , v2.views as views_recent
        , v.views
   from v2
          inner join video_latest v on v2.video_id=v.video_id
