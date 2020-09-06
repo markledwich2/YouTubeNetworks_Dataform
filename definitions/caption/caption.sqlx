@@ -1,7 +1,7 @@
 config {
   type: "incremental",
   tags:["standard"],
-  dependencies:["caption_udf", "video_latest", "channel_latest"]
+  dependencies:["caption_udf", "video_latest", "channel_latest", "channel_accepted"]
 }
 
 with latest as (
@@ -9,7 +9,8 @@ with latest as (
        , v:VideoId::string as video_id
        , v:Captions::array as captions
   from caption_stage s
-  ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+  where exists(select * from channel_accepted c where v:ChannelId::string = c.channel_id)
+  ${ when(incremental(), ` and updated > (SELECT MAX(updated) FROM ${self()})`) }
   qualify row_number() over (partition by video_id order by updated desc) = 1
 )
    , flattened as (

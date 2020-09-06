@@ -27,12 +27,10 @@ with vr as (
        , max(r.updated) as max_rec_updated
 
   from rec r
-         // get closest video stats
          left join video_stats_monthly fm
                    on fm.video_id = r.from_video_id and fm.month = date_trunc(month, r.updated)::date
-         left join channel_accepted fc on fc.channel_id = r.from_channel_id
-
-  --${ when(incremental(), `where rec_month >= (select max(rec_month) from ${self()})`) }
+         inner join channel_accepted fc on fc.channel_id = r.from_channel_id
+       ${ when(incremental(), `where rec_month >= (select max(rec_month) from ${self()})`) }
 
   group by 1, 2, 3
 

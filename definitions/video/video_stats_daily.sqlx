@@ -21,10 +21,12 @@ with delta as (
        , coalesce(prev_date, least(first_upload_date, updated), first_upload_date, updated)::date as from_date
        , greatest(1.0, datediff(days, from_date, to_date))::int as days --be careful. needs to match the v1 left join. e.g. if days rows match with delta, this should also be 2
        , views as total_views
-  from video
+  from video v
+  where exists(select channel_id from channel_accepted c where v.channel_id = c.channel_id)
+    -- and video_id = 'V7Qp4sg5fFg'
+   -- and channel_id = 'UCupvZG-5ko_eiXAupbDfxWw'
   ${ when(incremental(), `qualify max_updated > (select max(updated) from ${self()})`) }
-   -- where channel_id = 'UCupvZG-5ko_eiXAupbDfxWw'
-  --where video_id = 'V7Qp4sg5fFg'
+
   
   -- the views spread takes into account previous records of videos. So we should always consider the full set of videos that have been updated
 )
@@ -86,23 +88,15 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
 )
    -- the final result, re-select columns to remove any intermediate calculations
    , s as (
-  select vd2.*
-       , c.channel_title
-       , c.main_channel_id
-       , c.main_channel_title
-       , c.ideology
-       , c.media
-       , v.video_title
-       , v.upload_date
-       , v.duration
+  select video_id, channel_id, total_views, date, views_decay, delta_views, range_age, video_smear_no, updated
        -- true-up on the first row with the difference from the total
        , iff(days > 1 and video_smear_no = 1,
           coalesce(views_decay, 0) + delta_views - (sum(coalesce(views_decay, 0)) over (partition by vd2.video_id, vd2.updated))
          , views_decay) as views
        --m.views * datediff(seconds, '00:00:00'::time, duration) / 60 / 60 as hours_watched
   from vd2
-         left join channel_accepted c on c.channel_id = vd2.channel_id
-         left join video_latest v on v.video_id = vd2.video_id
+--          left join channel_accepted c on c.channel_id = vd2.channel_id
+--          left join video_latest v on v.video_id = vd2.video_id
 )
   -- check if there are any videos where the total views don't match the sum of all daily views
    , check_video_totals as (
@@ -126,7 +120,8 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
      from s
     order by video_id, date
 )
-select * from s
+select video_id, channel_id, total_views, date, views, updated from s
+--select count(*) from delta
 --select * from s order by date
 --select * from vd2 order by date
 --select * from check_video_totals
