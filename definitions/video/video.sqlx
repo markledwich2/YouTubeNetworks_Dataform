@@ -15,7 +15,7 @@ with v as (
        , v:Statistics:LikeCount::int as likes
        , v:Statistics:DislikeCount::int as dislikes
        , v:Description::string as description
-       , v:Duration::time as duration
+       , try_to_time(v:Duration::string) as duration
        , v:Keywords::array as keywords
        , coalesce(v:Thumbnail:HighResUrl::string, v:Thumbnails:HighResUrl::string) as thumb_high
        , coalesce(v:Thumbnail:StandardResUrl::string, v:Thumbnails:StandardResUrl::string) as thumb_standard

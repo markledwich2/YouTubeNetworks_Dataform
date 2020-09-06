@@ -1,0 +1,8 @@
+config {
+  type: "view"
+}
+
+select distinct t.value::string as tag
+from channel_latest, table (flatten(tags)) t
+where tag not in ('AntiWhiteness', 'Educational',  'Educational', 'MissingLinkMedia', 'Politician', 'Provocateur', 'Revolutionary', 'StateFunded', 'LGBT')
+order by tag
