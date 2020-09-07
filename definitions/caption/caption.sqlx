@@ -35,7 +35,6 @@ with latest as (
   select cg.video_id||'|'||caption_group as caption_id
        , cg.*
        , cl.ideology
-       , cl.media
        , cl.country
        , cl.lr
        , v.upload_date
@@ -46,8 +45,6 @@ with latest as (
        , v.description
        , array_to_string(v.keywords, ', ') as keywords
        , v.duration
-       , v.likes
-       , v.dislikes
        , v.thumb_high
   from cg
          left join video_latest v on cg.video_id=v.video_id

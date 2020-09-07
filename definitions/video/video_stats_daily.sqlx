@@ -120,7 +120,7 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
      from s
     order by video_id, date
 )
-select video_id, channel_id, total_views, date, views, updated from s
+select video_id, channel_id, date, views, updated from s
 --select count(*) from delta
 --select * from s order by date
 --select * from vd2 order by date

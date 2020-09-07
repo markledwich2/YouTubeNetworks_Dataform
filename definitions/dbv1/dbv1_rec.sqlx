@@ -7,8 +7,7 @@ config {
 with
 -- don't incremental, but make sure this is created on a fresh instance with the same schema
   rs as (
-    select *
-    from dbv1_rec_stage
+    select * from dbv1_rec_stage
     ${ when(incremental(), `where false`) }
   )
    , flatten1 as (

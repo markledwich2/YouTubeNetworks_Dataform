@@ -29,13 +29,11 @@ with vr as (
   from rec r
          left join video_stats_monthly fm
                    on fm.video_id = r.from_video_id and fm.month = date_trunc(month, r.updated)::date
-         inner join channel_accepted fc on fc.channel_id = r.from_channel_id
+         inner join channel_accepted fc on fc.channel_id = r.from_channel_id -- inner to filter only to accepted channels
+         -- incremental. update any video combo newer or in the latest month
        ${ when(incremental(), `where rec_month >= (select max(rec_month) from ${self()})`) }
 
   group by 1, 2, 3
-
-         -- incremental. update any video combo newer or in the latest month
-
 )
    , s as (
   select vr.*
@@ -58,11 +56,10 @@ with vr as (
        , tc.ideology as to_ideology
   from vr
          left join video_latest fv on fv.video_id = vr.from_video_id
-         left join channel_accepted fc on fc.channel_id = vr.from_channel_id
+         inner join channel_accepted fc on fc.channel_id = vr.from_channel_id
          left join channel_accepted tc on tc.channel_id = vr.to_channel_id
 )
-select *
-from s
+select * from s
 
 --      , video_views_test as (
 --     select from_channel_id
