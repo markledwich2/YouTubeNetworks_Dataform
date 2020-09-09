@@ -1,7 +1,7 @@
 config {
   type: "incremental",
   tags:["standard"],
-  dependencies:["caption_udf", "video_latest", "channel_latest", "channel_accepted"]
+  dependencies:["caption_udf", "channel_latest", "channel_accepted"]
 }
 
 with latest as (
@@ -10,6 +10,7 @@ with latest as (
        , v:Captions::array as captions
   from caption_stage s
   where exists(select * from channel_accepted c where v:ChannelId::string = c.channel_id)
+  --and video_id = 'asQ7lsY4EJg'
   ${ when(incremental(), ` and updated > (SELECT MAX(updated) FROM ${self()})`) }
   qualify row_number() over (partition by video_id order by updated desc) = 1
 )
@@ -31,24 +32,4 @@ with latest as (
   group by video_id
          , caption_group
 )
-   , v2 as (
-  select cg.video_id||'|'||caption_group as caption_id
-       , cg.*
-       , cl.ideology
-       , cl.country
-       , cl.lr
-       , v.upload_date
-       , v.views
-       , v.video_title
-       , v.channel_title
-       , v.channel_id
-       , v.description
-       , array_to_string(v.keywords, ', ') as keywords
-       , v.duration
-       , v.thumb_high
-  from cg
-         left join video_latest v on cg.video_id=v.video_id
-         left join channel_latest cl on v.channel_id=cl.channel_id
-)
-select *
-from v2
+select * from cg

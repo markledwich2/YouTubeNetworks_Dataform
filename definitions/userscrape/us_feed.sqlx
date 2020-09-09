@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags:["userscrape"],
+  tags:["us", "standard"],
   dependencies:[ ]
 }
 
@@ -10,4 +10,5 @@ select v: account::string as account
      , f.value:video_id::string as video_id
 from us_feed_stage
    , lateral flatten(input => v:feed_videos::array, outer => true) f
+
 ${ when(incremental(), `WHERE trial_id > (SELECT MAX(trial_id) FROM ${self()})`) }

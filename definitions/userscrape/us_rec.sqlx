@@ -1,9 +1,10 @@
 config {
   type: "incremental",
-  tags:["standard"],
+  tags:["standard", "us"],
   dependencies:[ ]
 }
 
+with r1 as (
   select v: account::string as account
        , v:channel::string as from_channel_title
        , v:channel_id::string as from_channel_id
@@ -15,8 +16,29 @@ config {
        , r.value:videoId::string as to_video_id
        , r.value:personalized::boolean as personalized
        , r.value:rank::string as rank
-       , r.value:channelId::string as to_channel_id
        , r.value:channelTitle::string as to_channel_title
+       , r.value:channelId::string as to_channel_id
   from us_rec_stage
      , lateral flatten(input => v:recommendations) r
-${ when(incremental(), `where updated > (select max(updated) from ${self()})`) }
+  where updated>'2020-09-05'
+   ${ when(incremental(), `and updated > (select max(updated) from ${self()})`) }
+)
+   , r2 as (
+  select r1.account
+       , from_channel_title
+       , from_channel_id
+       , from_video_id
+       , from_video_title
+       , unavailable
+       , r1.updated
+       , to_video_title
+       , to_video_id
+       , personalized
+       , rank
+       , to_channel_title
+       , coalesce(to_channel_id, tc.channel_id) as to_channel_id
+  from r1
+         left join channel_latest tc on tc.channel_title=r1.to_channel_title
+)
+select *
+from r2

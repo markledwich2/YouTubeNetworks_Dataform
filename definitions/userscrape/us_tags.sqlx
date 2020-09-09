@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  tags: ['standard', 'us']
 }
 
 select distinct t.value::string as tag

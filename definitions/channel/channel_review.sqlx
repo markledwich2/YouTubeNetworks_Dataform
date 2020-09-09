@@ -111,6 +111,7 @@ with review as (
               , updated
          from latest_review r
             , table (flatten(tags)) t
+         where tag not in ('Provocateur', 'AntiWhiteness', 'Revolutionary') --legacy tags
        ) f
          left join tag_stats ts on f.tag=ts.tag
 )

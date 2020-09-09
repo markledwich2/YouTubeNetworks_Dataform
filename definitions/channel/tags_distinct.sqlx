@@ -1,0 +1,7 @@
+config {
+  type: "view",
+  dependencies:['channel_review']
+}
+
+select distinct f.value::string as tag
+from channel_review, table (flatten(tags)) f

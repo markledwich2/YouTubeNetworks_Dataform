@@ -1,16 +1,17 @@
 config {
   type: "incremental",
-  tags:["userscrape"],
+  tags:["standard", "us"],
   uniqueKey: ['account', 'trial_id', 'video_id'],
   dependencies:[ ]
 }
 
-select v: account::string as account
+select v:account::string as account
      , v:goal_watch_time::int as goal_secs
      , v:trial::string as trial_id
      , v:video_id::string as video_id
      , v:video_length::int as video_seconds
      , v:watch_time::double as watch_secs
      , v:updated::timestamp_ntz as updated
-from watch_stage
-${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
+from us_watch_stage
+${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`)}
+where updated > '2020-09-05'

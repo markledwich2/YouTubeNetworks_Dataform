@@ -1,0 +1,52 @@
+config {
+  type: "view",
+  dependencies: ['caption', 'video_latest', 'channel_latest']
+}
+with cg as (
+  select cg.video_id
+       , cg.offset_seconds
+       , cg.updated
+       , cg.caption_group
+       , cl.ideology
+       , cl.tags
+       , cl.lr
+       , v.video_title
+       , v.upload_date
+       , v.views
+       , v.channel_title
+       , v.channel_id
+       , v.duration
+       , v.thumb_high
+       , iff(caption_group=0, object_construct(
+      'caption', caption
+    , 'title', v.video_title
+    , 'keywords', array_to_string(v.keywords, ', ')
+    , 'description', v.description)
+    , object_construct('caption', caption)) as parts
+  from caption cg
+         left join video_latest v
+                   on cg.video_id=v.video_id
+         left join channel_latest cl on v.channel_id=cl.channel_id
+  --where v.video_id='asQ7lsY4EJg'
+)
+   , flat as (
+  select cg.video_id||'|'||caption_group||'|'||f.key::string as caption_id
+       , video_id
+       , offset_seconds
+       , updated
+       , ideology
+       , tags
+       , lr
+       , video_title
+       , upload_date
+       , views
+       , channel_title
+       , channel_id
+       , duration
+       , f.key::string as part
+       , f.value::string as caption
+  from cg
+     , lateral flatten(parts) f
+)
+select *
+from flat

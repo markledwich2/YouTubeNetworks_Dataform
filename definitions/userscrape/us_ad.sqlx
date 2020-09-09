@@ -1,0 +1,19 @@
+config {
+  type: "incremental",
+  tags:["us", "standard"],
+  uniqueKey: ['account', 'trial_id', 'video_id'],
+  dependencies:[ "us_watch" ]
+}
+
+select v: account::string as account
+     , v:trial::string as trial_id
+     , v:video_id::string as video_id
+     , a.value::string as ad
+     , coalesce(v:updated::timestamp_ntz
+  , (select max(w.updated) from us_watch w where w.trial_id=v:trial::string)
+  , '2020-09-01'::timestamp_ntz) as updated
+from us_ad_stage s
+   , lateral flatten(input => v:advertisers::array, outer => true) a
+where ad is not null
+${ when(incremental(), `and trial_id > (SELECT MAX(trial_id) FROM ${self()})`) }
+--where updated > '2020-09-05'
