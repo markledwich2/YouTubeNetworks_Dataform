@@ -1,6 +1,7 @@
 config {
   type: "view",
-  dependencies: ['caption', 'video_latest', 'channel_latest']
+  dependencies: ['caption', 'video_latest', 'channel_latest'],
+  tags: ["standard"]
 }
 with cg as (
   select cg.video_id
