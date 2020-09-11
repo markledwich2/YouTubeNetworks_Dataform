@@ -13,5 +13,5 @@ select v:account::string as account
      , v:watch_time::double as watch_secs
      , v:updated::timestamp_ntz as updated
 from us_watch_stage
-${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`)}
 where updated > '2020-09-05'
+${ when(incremental(), `and updated > (SELECT MAX(updated) FROM ${self()})`)}
