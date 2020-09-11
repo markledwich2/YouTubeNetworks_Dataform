@@ -1,0 +1,6 @@
+config {
+  type: "table"
+}
+
+select $1::string channel_id, $2::string channel_title, $4::integer subs
+from @public.yt_data/import/channels (file_format => tsv)

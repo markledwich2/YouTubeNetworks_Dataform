@@ -1,96 +1,118 @@
 config {
-  type: "table",
+  type: "incremental",
   tags: ["standard"],
-  dependencies: ['video_latest', 'channel_review' ]
+  dependencies: ['video_latest', 'channel_review', 'channel_sam_import' ],
+  uniqueKey:['channel_id', 'updated']
 }
 
-with c as (
+with cstage as (
   select v:ChannelId::string as channel_id
        , v:ChannelTitle::string as channel_title
        , v:MainChannelId::string as main_channel_id
-       , v:Description::string as channel_decription
        , v:LogoUrl::string as logo_url
        , v:Subs::int as subs
        , v:ChannelViews::int as channel_views
        , v:Country::string as country
        , v:Updated::timestamp_ntz as updated
        , v:StatusMessage::string as status_msg
-       , v:ReviewStatus::string as review_status
-       , v:Subscruptions::array as subscriptions
+       , v:"Subscriptions"::array as subscriptions
        , v:Keywords::string as keywords
        , v:DefaultLanguage::string as default_langauge
        , v:FeaturedChannelIds::array as featured_channels
        , v:Description::string as description
   from channel_stage
 )
-   , cv as (
-  select channel_id
-       , sum(views) as channel_video_views
-       , min(upload_date) as from_date
-       , max(upload_date) as to_date
-       , greatest(datediff(day
-                    , from_date
-                    , iff(to_date=from_date
-                             , current_date()
-                             , to_date)), 1) as day_range
-       , sum(views)/day_range as channel_lifetime_daily_views
-       , avg(datediff(minutes, '00:00:00'::time, duration::time)) as avg_minutes
-
-  from video_latest
-  group by channel_id
+   , c1 as (
+  select *, 'recfluence' as source
+  from cstage as cs
+  union all
+  (select channel_id
+        , channel_title
+        , null as main_channel_id
+        , null as logo_url
+        , subs
+        , null as channel_views
+        , null as country
+        , '2020-09-01'::timestamp_ntz as updated
+        , null as status_msg
+        , null as subscriptions
+        , null as keywords
+        , null as default_langauge
+        , null as featured_channels
+        , null as description
+        , 'sam_export' as source
+   from channel_sam_import
+   where not exists(select * from cstage where cstage.channel_id=channel_sam_import.channel_id))
 )
-   , mc as (
-  select channel_id, channel_title
-  from c
-)
-   , ch as (
-  select c.*
-       , cv.channel_video_views
-       , cv.from_date
-       , cv.to_date
-       , cv.day_range
-       , cv.channel_lifetime_daily_views
-       , cv.avg_minutes
-       , channel_lifetime_daily_views*cr.relevance as channel_lifetime_daily_views_relevant
-       , coalesce(mc.channel_title, c.channel_title) as main_channel_title
-       , cr.tags as tags
-       , cr.lr
-       , cr.relevance
-       , cr.reviews_all
-       , cr.reviews_algo
-       , case -- evaluated top to bottom. Start with most stand-out/defining tags
-           when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
-           when array_contains('MRA'::variant, tags) then 'MRA'
-           when array_contains('QAnon'::variant, tags) then 'QAnon'
-           when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
-           when array_contains('AntiSJW'::variant, tags) then 'Anti-SJW'
-           when array_contains('Socialist'::variant, tags) then 'Socialist'
-           when array_contains('Black'::variant, tags) then 'Black'
-           when array_contains('LGBT'::variant, tags) then 'LGBT'
-           when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
-           when array_contains('Libertarian'::variant, tags) then 'Libertarian'
-           when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
-           when array_contains('PartisanLeft'::variant, tags) then 'Partisan Left'
-           when array_contains('PartisanRight'::variant, tags) then 'Partisan Right'
-           when cr.lr in ('C','L') and arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags) then 'Center/Left MSM'
-           when array_contains('AntiTheist'::variant, tags) then 'Anti-theist'
-           else 'Unclassified'
-    end as ideology
-       , case
-           when arrays_overlap(array_construct('Mainstream News', 'TV', 'LateNightTalkShow'), tags) then 'Mainstream Media'
-           when array_contains('MissingLinkMedia'::variant, tags) then 'Missing Link Media'
-           else 'YouTube'
-    end as media
-       , subs>10000 or channel_views>(
-                                       select avg(channel_views/subs)
-                                       from channel
-                                       where subs>0
-                                     )*10000 as meets_sub_criteria
-       , cr.reviews_all>=1 and cr.lr is not null and cr.relevance>0.3 as meets_review_criteria
-  from c
-         left join mc on c.main_channel_id=mc.channel_id
-         left join cv on c.channel_id=cv.channel_id
-         left join channel_review cr on c.channel_id=cr.channel_id
-)
-select *
-from ch
+--    , cv as (
+--   select channel_id
+--        , sum(views) as channel_video_views
+--        , min(upload_date) as from_date
+--        , max(upload_date) as to_date
+--        , greatest(datediff(day
+--                     , from_date
+--                     , iff(to_date=from_date
+--                              , current_date()
+--                              , to_date)), 1) as day_range
+--        , sum(views)/day_range as channel_lifetime_daily_views
+--        , avg(datediff(minutes, '00:00:00'::time, duration::time)) as avg_minutes
+--
+--   from video_latest
+--   group by channel_id
+-- )
+--    , mc as (
+--   select channel_id, channel_title
+--   from c1
+-- )
+--    , ch as (
+--   select cstage.*
+--        , cv.channel_video_views
+--        , cv.from_date
+--        , cv.to_date
+--        , cv.day_range
+--        , cv.channel_lifetime_daily_views
+--        , cv.avg_minutes
+--        , channel_lifetime_daily_views*cr.relevance as channel_lifetime_daily_views_relevant
+--        , coalesce(mc.channel_title, cstage.channel_title) as main_channel_title
+--        , cr.tags as tags
+--        , cr.lr
+--        , cr.relevance
+--        , cr.reviews_all
+--        , cr.reviews_algo
+--        , cr.reviews_all-cr.reviews_algo as review_human
+--        , case -- evaluated top to bottom. Start with most stand-out/defining tags
+--            when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
+--            when array_contains('MRA'::variant, tags) then 'MRA'
+--            when array_contains('QAnon'::variant, tags) then 'QAnon'
+--            when array_contains('Conspiracy'::variant, tags) then 'Conspiracy'
+--            when array_contains('AntiSJW'::variant, tags) then 'Anti-SJW'
+--            when array_contains('Socialist'::variant, tags) then 'Socialist'
+--            when array_contains('Black'::variant, tags) then 'Black'
+--            when array_contains('LGBT'::variant, tags) then 'LGBT'
+--            when array_contains('ReligiousConservative'::variant, tags) then 'Religious Conservative'
+--            when array_contains('Libertarian'::variant, tags) then 'Libertarian'
+--            when arrays_overlap(array_construct('SocialJustice', 'AntiWhiteness'), tags) then 'Social Justice'
+--            when array_contains('PartisanLeft'::variant, tags) then 'Partisan Left'
+--            when array_contains('PartisanRight'::variant, tags) then 'Partisan Right'
+--            when cr.lr in ('C','L') and arrays_overlap(array_construct('Mainstream News', 'MissingLinkMedia'), tags) then 'Center/Left MSM'
+--            when array_contains('AntiTheist'::variant, tags) then 'Anti-theist'
+--            else 'Unclassified'
+--     end as ideology
+--        , case
+--            when arrays_overlap(array_construct('Mainstream News', 'TV', 'LateNightTalkShow'), tags) then 'Mainstream Media'
+--            when array_contains('MissingLinkMedia'::variant, tags) then 'Missing Link Media'
+--            else 'YouTube'
+--     end as media
+--        , subs>10000 or channel_views>(
+--                                        select avg(channel_views/subs)
+--                                        from channel
+--                                        where subs>0
+--                                      )*10000 as meets_sub_criteria
+--        , cr.reviews_all>=1 and cr.lr is not null and cr.relevance>0.3 as meets_review_criteria
+--   from c1
+--          left join mc on cstage.main_channel_id=mc.channel_id
+--          left join cv on cstage.channel_id=cv.channel_id
+--          left join channel_review cr on cstage.channel_id=cr.channel_id
+-- )
+select * from c1
+${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
