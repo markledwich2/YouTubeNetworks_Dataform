@@ -1,7 +1,7 @@
 config { 
     type: 'view',
     dependencies: ['video_stats_daily', 'channel_accepted', 'video_latest'],
-    //tags: ['standard']
+    tags: ['standard']
 }
 
 with vm as (
