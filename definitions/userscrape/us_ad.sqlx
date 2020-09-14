@@ -16,4 +16,3 @@ from us_ad_stage s
    , lateral flatten(input => v:advertisers::array, outer => true) a
 where ad is not null
 ${ when(incremental(), `and updated > (SELECT MAX(updated) FROM ${self()})`) }
---where updated > '2020-09-05'

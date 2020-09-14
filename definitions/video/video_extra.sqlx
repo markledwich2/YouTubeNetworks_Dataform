@@ -54,4 +54,5 @@ select
      , iff(error_type='Removed - copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
 from video_extra_stage
        left join video_latest l on l.video_id=coalesce(v:Id, v:id, v:VideoId)::string
-${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }
+     ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
+  qualify row_number() over (partition by video_id, updated order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes

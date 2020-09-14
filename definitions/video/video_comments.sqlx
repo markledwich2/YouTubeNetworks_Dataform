@@ -6,8 +6,10 @@ config {
 
 with stage_latest as (
   select * from video_extra_stage
+  ${ when(incremental(), `where  v:Updated::timestamp_ntz > (select max(updated) from ${self()})`) }
   qualify row_number() over (partition by v:VideoId::string order by  v:Updated::timestamp_ntz desc) = 1
 )
+
 select
   v:VideoId::string as video_id
 , v:ChannelId::string as channel_id
@@ -18,5 +20,3 @@ select
 , v:Updated::timestamp_ntz as updated
 from stage_latest
 , lateral flatten(input => v:Comments::array) h
-${ when(incremental(), `where updated > (select max(updated) from ${self()})`) }
-
