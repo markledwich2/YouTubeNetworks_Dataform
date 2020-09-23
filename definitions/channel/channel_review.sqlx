@@ -13,7 +13,7 @@ with review as (
        , v:Relevance::number/10 as relevance
        , v:Updated::timestamp_ntz as updated
        , v:SoftTags::array as tags
-  from public.channel_review_stage
+  from channel_review_stage
 )
 
    , sam_reviews as (
@@ -21,6 +21,7 @@ with review as (
        , array_agg(tag) as tags
        , any_value(lr) as lr
        , max(updated) as updated
+       , any_value(relevance) as relevance
   from (
          select channel_id
               , first_value(lr) over (partition by channel_id order by lr_conf desc) lr
@@ -28,12 +29,14 @@ with review as (
                   when tag in ('MainstreamNews','MainstreamMedia') then 'Mainstream News'
                   else tag
            end as tag
+               , relevance
               , updated
          from (
                 select channel_id
                      , iff(tag in ('L','C','R'), tag, null) as lr
                      , iff(lr is null, 0, confidence) as lr_conf
                      , iff(tag in ('L','C','R','YouTube'), null, tag) as tag
+                     , relevance
                      , confidence
                      , updated
                 from channel_review_sam_raw
@@ -59,7 +62,7 @@ with review as (
               , lr
               , null as main_channel_id
               , 'predicted by sams algorythm' as notes
-              , 1 as relevance
+              , relevance
               , updated
               , tags
               , 1 as reviews_algo

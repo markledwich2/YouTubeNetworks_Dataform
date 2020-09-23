@@ -1,0 +1,31 @@
+config {
+  type: 'view',
+  dependencies: ['channel_accepted']
+}
+
+with views_by_day as (
+  select v.channel_id
+       , datediff(day, date, (select max(date) from video_stats_daily)) as ago
+       , sum(v.views) as views
+  from video_stats_daily v
+         left join video_latest vl on v.video_id=vl.video_id
+  where exists(select * from channel_accepted c where v.channel_id=c.channel_id)
+  group by 1, 2
+)
+   , views_by_channel as (
+  select channel_id
+       , (select max(date) from video_stats_daily) as date_to
+       , ${channel.periodStatsObject('ago', 'views', 'view_stats')}
+  from views_by_day
+  group by 1
+)
+select channel_title
+     , subs
+     , channel_views
+     , tags
+     , lr
+     , logo_url
+     , v.*
+from views_by_channel v
+       inner join channel_accepted c on c.channel_id=v.channel_id
+--where c.channel_id in ('UCAql2DyGU2un1Ei2nMYsqOA', 'UCtHiXlHfmqtyUOh8o5mKISQ')
