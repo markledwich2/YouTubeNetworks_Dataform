@@ -38,7 +38,7 @@ with cv as (
        , cv.day_range
        , cv.channel_lifetime_daily_views
        , cv.avg_minutes
-       , channel_lifetime_daily_views*cr.relevance as channel_lifetime_daily_views_relevant
+       , channel_lifetime_daily_views*cr.relevance::number as channel_lifetime_daily_views_relevant
        , mc.channel_title as main_channel_title
        , cr.tags as tags
        , cr.lr
