@@ -5,8 +5,9 @@ config {
 
 with views_by_day as (
   select v.channel_id
-       , datediff(day, date, (select max(date) from video_stats_daily)) as ago
-       , sum(v.views) as views
+       , datediff(day, date, (select max(date) from video_stats_daily)) ago
+       , sum(v.views) views
+       , sum(v.watch_hours) watch_hours
   from video_stats_daily v
          left join video_latest vl on v.video_id=vl.video_id
   where exists(select * from channel_accepted c where v.channel_id=c.channel_id)
@@ -16,6 +17,7 @@ with views_by_day as (
   select channel_id
        , (select max(date) from video_stats_daily) as date_to
        , ${channel.periodStatsObject('ago', 'views', 'view_stats')}
+       , ${channel.periodStatsObject('ago', 'watch_hours', 'watch_stats')}
   from views_by_day
   group by 1
 )
