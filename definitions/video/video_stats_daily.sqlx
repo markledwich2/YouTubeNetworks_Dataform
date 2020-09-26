@@ -129,13 +129,19 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
   from s
   order by video_id, date
 )
+, channel_duration as (
+  select channel_id, avg(datediff(seconds, '0'::time, duration)) duration_seconds_avg from video_latest
+  where duration is not null
+  group by channel_id
+)
 select s.video_id
      , s.channel_id
      , date
      , s.views
      , s.updated
-     , s.views*datediff(seconds, '0'::time, duration)/60/60*w.pct_watch as watch_hours
+     , s.views*iff(v.duration is null, duration_seconds_avg, datediff(seconds, '0'::time, v.duration))/60/60*w.pct_watch as watch_hours
 from s
        left join video_latest v on v.video_id=s.video_id
        left join video_watch_time w on datediff(seconds, '0'::time, duration) between w.from_s and w.to_s
+    left join channel_duration d on d.channel_id = s.channel_id
 where s.views > 0
