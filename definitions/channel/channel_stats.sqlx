@@ -16,8 +16,8 @@ with views_by_day as (
    , views_by_channel as (
   select channel_id
        , (select max(date) from video_stats_daily) as date_to
-       , ${channel.periodStatsObject('ago', 'views', 'view_stats')}
-       , ${channel.periodStatsObject('ago', 'watch_hours', 'watch_stats')}
+       , ${channel.periodStatsObject('date_to', 'views', 'view_stats')}
+       , ${channel.periodStatsObject('date_to', 'watch_hours', 'watch_stats')}
   from views_by_day
   group by 1
 )
