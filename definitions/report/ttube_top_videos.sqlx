@@ -1,0 +1,52 @@
+config {
+  type: "view"
+}
+
+with d1 as (
+  select *
+       , (select max(date) from video_stats_daily) day_to
+       --, sum(iff(date between anchor and dateadd(day,  -2, anchor), views, 0)) d2
+  from video_stats_daily d
+  where date >= '2019-01-01'
+  --where channel_id in ('UCzQUP1qoWDoEbmsQxvdjxgQ','UCupvZG-5ko_eiXAupbDfxWw')
+)
+   , relative_ranges as (
+  select video_id
+       , channel_id
+       , day_to as period_value
+       , 'd'||f.value::int as period_type
+       , sum(views) views
+       , sum(watch_hours) watch_hours
+  from d1
+     , lateral flatten(array_construct(1, 2, 7, 30)) f
+  where date between dateadd(day, -f.value::int, day_to) and day_to
+  group by 1,2,3,4
+)
+   , month_ranges as (
+       select video_id
+       , channel_id
+       , date_trunc(month, date)::date
+       , 'm'
+       , sum(views)
+       , sum(watch_hours)
+  from d1
+       where date >= dateadd(year, -1, day_to) -- only do 1y back
+  group by 1,2,3,4
+)
+   , year_ranges as (
+       select video_id
+       , channel_id
+       , date_trunc(year, date)::date as period_value
+       , 'y'
+       , sum(views) views
+       , sum(watch_hours) watch_hours
+  from d1
+
+  group by 1,2,3,4
+)
+   , d2 as (
+     select * from relative_ranges
+     union all select * from month_ranges
+     union all select * from year_ranges
+)
+select * from d2
