@@ -29,7 +29,7 @@ with review as (
                   when tag in ('MainstreamNews','MainstreamMedia') then 'Mainstream News'
                   else tag
            end as tag
-               , relevance
+              , relevance
               , updated
          from (
                 select channel_id
@@ -45,13 +45,12 @@ with review as (
        )
   group by channel_id
 )
-   -- union human and algo reviews
+  -- union human and algo reviews
    , all_reviews as (
   select *
        , decode(lr, 'L', -1, 'C', 0, 'R', 1, null) as lrnum
        , iff(reviews_algo=0, lrnum, null) as lrnum_human
        , iff(reviews_algo=0, relevance, null) as relevance_human
-       , iff(reviews_algo=0, 1, 0.9) as weight -- on a tie, humans should win
   from (
          select *
               , 0 as reviews_algo
@@ -61,7 +60,7 @@ with review as (
               , 'sam_algo' as email
               , lr
               , null as main_channel_id
-              , 'predicted by sams algorythm' as notes
+              , 'predicted by sams algo' as notes
               , relevance
               , updated
               , tags
@@ -70,7 +69,7 @@ with review as (
        )
 )
 
-   -- find the first date a tag has been introduced. Used when working out majority tags (ignore reviews pre-tag)
+  -- find the first date a tag has been introduced. Used when working out majority tags (ignore reviews pre-tag)
    , tag_stats as (
   select tag, date_trunc(minutes, min(updated)) as min_updated
   from (
@@ -81,7 +80,7 @@ with review as (
   group by tag
 )
 
-   -- humans sometimes update their reviews, use the latest
+  -- we frequently update reviews, use the latest
    , latest_review as (
   select *
        , count(*) over (partition by channel_id) as review_count
@@ -93,7 +92,15 @@ with review as (
        )
 )
 
-   -- flatten, o there is a row for each tag
+  -- humans should override algo reviews
+   , latest_review_no_algo_conflicts as (
+  select *
+  from latest_review a
+  where reviews_algo=0
+     or not exists(select * from all_reviews r where r.reviews_algo=0 and a.channel_id=r.channel_id)
+)
+
+  -- flatten, o there is a row for each tag
    , tags_flat as (
   select channel_id
        , f.tag
@@ -101,25 +108,27 @@ with review as (
        , updated
        , ts.min_updated
        , reviews_algo
-       , weight
-       , (select sum(weight) from latest_review r where r.channel_id=f.channel_id and r.updated>=ts.min_updated) as relevant_reviews
-       , (select sum(weight) from latest_review r where r.channel_id=f.channel_id and r.updated>=ts.min_updated and r.reviews_algo=0) as relevant_reviews_human
+       , (select count(*) from latest_review_no_algo_conflicts r where r.channel_id=f.channel_id and r.updated>=ts.min_updated) as relevant_reviews
+       , (select count(*)
+          from latest_review_no_algo_conflicts r
+          where r.channel_id=f.channel_id
+            and r.updated>=ts.min_updated
+            and r.reviews_algo=0) as relevant_reviews_human
   from (
          -- flatten to row per tag & filter out stale reviews
          select channel_id
               , t.value::string as tag
               , r.email
               , r.reviews_algo
-              , r.weight
               , updated
-         from latest_review r
+         from latest_review_no_algo_conflicts r
             , table (flatten(tags)) t
-         where tag not in ('Provocateur', 'AntiWhiteness', 'Revolutionary') --legacy tags
+         where tag not in ('Provocateur','AntiWhiteness','Revolutionary') --legacy tags
        ) f
          left join tag_stats ts on f.tag=ts.tag
 )
 
-   -- for each channel, calculate the final list of tags with a majority vote
+  -- for each channel, calculate the final list of tags with a majority vote
    , tags_agg_all as (
   select channel_id
        , array_agg(tag) within group ( order by tag ) as tags
@@ -128,12 +137,12 @@ with review as (
               , tag
          from tags_flat
          group by channel_id, tag
-         having sum(weight)>any_value(relevant_reviews)/2
+         having count(*)>any_value(relevant_reviews)/2
        )
   group by channel_id
 )
 
-   -- as with tags_agg_all, but only humans. used for training other algo's without them influencing eachother
+  -- as with tags_agg_all, but only humans. used for training other algo's without them influencing eachother
    , tags_agg_human as (
   select channel_id
        , array_agg(tag) within group ( order by tag ) as tags
@@ -143,16 +152,16 @@ with review as (
          from tags_flat
          where reviews_algo=0
          group by channel_id, tag
-         having sum(weight)>any_value(relevant_reviews_human)/2
+         having count(*)>any_value(relevant_reviews_human)/2
        )
   group by channel_id
 )
 
-   -- group reviews by channel
-   , r2 as (
+   , raw_reviews_by_channel2 as (
   select channel_id
        , count(*) as reviews_all
        , sum(reviews_algo) as reviews_algo
+       , count(*)-sum(reviews_algo) as reviews_human
        , array_agg(email) as reviewers
        , array_agg(object_construct(
       'email', email
@@ -161,15 +170,26 @@ with review as (
     , 'notes', notes
     , 'relevance', relevance
     , 'tags', tags)) as reviews
-       , decode(round(avg(lrnum)), -1, 'L', 0, 'C', 1, 'R') as lr
-       , decode(round(avg(lrnum_human)), -1, 'L', 0, 'C', 1, 'R') as lr_human
-       , avg(relevance) as relevance
-       , avg(relevance_human) as relevance_human
   from latest_review r
-  group by 1
+  group by channel_id
 )
 
-   -- latest channel (don't use the channel table so it can depend on this table)
+  -- group non-conflicting reviews by channel for relevance/lr calcs, then join to raw to get full stats
+   , r2 as (
+  select r.*, u.reviews_all, u.reviews_algo, u.reviews_human, u.reviewers, u.reviews
+  from (
+         select channel_id
+              , decode(round(avg(lrnum)), -1, 'L', 0, 'C', 1, 'R') as lr
+              , decode(round(avg(lrnum_human)), -1, 'L', 0, 'C', 1, 'R') as lr_human
+              , avg(relevance_human) as relevance_human
+              , avg(relevance) as relevance
+         from latest_review_no_algo_conflicts r
+         group by channel_id
+       ) r
+         left join raw_reviews_by_channel2 u on u.channel_id=r.channel_id
+)
+
+  -- latest channel (don't use the channel table so it can depend on this table)
    , cl as (
   select v:ChannelId::string as channel_id
        , v:ChannelTitle::string as channel_title

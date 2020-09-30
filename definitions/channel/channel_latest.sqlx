@@ -1,5 +1,5 @@
 config {
-  type: "incremental",
+  type: "table",
   tags: ["standard"],
   uniqueKey:['channel_id']
 }
@@ -16,14 +16,12 @@ with cv as (
                              , to_date)), 1) as day_range
        , sum(views)/day_range as channel_lifetime_daily_views
        , avg(datediff(minutes, '00:00:00'::time, duration::time)) as avg_minutes
-
   from video_latest
   group by channel_id
 )
    , latest as (
   select *
   from channel
-  ${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
     qualify row_number() over (partition by channel_id order by updated desc)=1
 )
    , latest_names as (
