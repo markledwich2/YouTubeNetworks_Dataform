@@ -1,6 +1,7 @@
 config {
   type: "table",
-  tags:['standard']
+  tags:['standard'],
+  dependencies:['video_stats_daily', 'channel_accepted']
 }
 
 with d1 as (
