@@ -4,19 +4,7 @@ config {
     dependencies: []
 }
 
-with review as (
-  select v:ChannelId::string as channel_id
-       , v: Email::string as email
-       , v:LR::string as lr
-       , v:MainChannelId::string as main_channel_id
-       , v:Notes::string as notes
-       , v:Relevance::number/10 as relevance
-       , v:Updated::timestamp_ntz as updated
-       , v:SoftTags::array as tags
-  from channel_review_stage
-)
-
-   , sam_reviews as (
+with sam_reviews as (
   select channel_id
        , array_agg(tag) as tags
        , any_value(lr) as lr
