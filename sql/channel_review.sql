@@ -4,9 +4,11 @@ select channel_title
      , lr
      , relevance
      , r.value:lr::string as reviewer_lr
-     , array_to_string( r.value:tags::array, '|') as reviewer_tags
+     , array_to_string(r.value:tags::array, '|') as reviewer_tags
      , r.value:main_channel_id::string as reviewer_main_channel_id
-    , r.value:relevance::double as reviewer_relevance
-, left(r.value:email::string, 3) as reviewer_code
+     , r.value:relevance::double as reviewer_relevance
+     , left(r.value: email::string, 3) as reviewer_code
+     , r.value:updated::timestamp_ntz updated
 from channel_review
    , lateral flatten(input => reviews) r
+order by updated desc
