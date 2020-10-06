@@ -157,7 +157,9 @@ with sam_reviews as (
     , 'main_channel_id', main_channel_id
     , 'notes', notes
     , 'relevance', relevance
-    , 'tags', tags)) as reviews
+    , 'tags', tags
+    , 'updated', updated
+    )) as reviews
   from latest_review r
   group by channel_id
 )
