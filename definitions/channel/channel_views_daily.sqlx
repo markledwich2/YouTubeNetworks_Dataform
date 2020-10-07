@@ -1,0 +1,61 @@
+config {
+  type: "table",
+  dependencies: ['channel', 'date'],
+  tags:['standard']
+}
+
+with delta as (
+  select channel_id
+       , updated
+       , updated::date to_date
+       , row_number() over (partition by channel_id order by updated) as row_no
+       , lag(channel_views) over (partition by channel_id order by updated) as from_views
+       , lag(updated) over (partition by channel_id order by updated)::date from_date
+       , greatest(1.0, datediff(days, from_date, updated))::int days --be careful. needs to match the v1 left join. e.g. if days rows match with delta, this should also be 2
+       , iff(row_no=1, 0, channel_views-from_views) delta_views
+       , channel_views
+  from channel c
+  where channel_views is not null and exists(select * from channel_accepted a where a.channel_id = c.channel_id)
+    --and channel_id='UCXIJgqnII2ZOINSWNOGFThA'
+)
+   , first_stats as (
+  select channel_id, channel_views, updated
+  from channel
+  where channel_views is not null
+    qualify row_number() over (partition by channel_id order by updated)=1
+)
+   , days as (
+  select date
+  from date
+  where date between (select min(to_date) from delta) and greatest((select max(to_date) from delta), current_date()::date))
+
+   , by_date as (
+  select channel_id
+       , to_date
+       , from_date
+       , date
+       , days
+       , delta_views/days views -- by joining from date, we cross multiple delta views, avg them across the days
+       , channel_views
+  from days
+         inner join delta d on d.from_date=date or (d.from_date<date and date<d.to_date)
+)
+   , day_grouping as (
+  select channel_id
+       , date
+       , sum(views) views
+       , max(channel_views) channel_views
+  from by_date
+  group by channel_id, date
+  order by date desc
+)
+   , test_totals as (
+  select g.*
+       , (coalesce(fc.channel_views, 0)
+    +sum(views) over (partition by g.channel_id order by date rows between unbounded preceding and current row))::int running_total
+       , g.channel_views-running_total as diff
+  from day_grouping g
+         left join first_stats fc on fc.channel_id=g.channel_id
+)
+select channel_id, date, views
+from day_grouping
