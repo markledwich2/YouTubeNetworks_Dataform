@@ -1,0 +1,54 @@
+config {
+  type: "table"
+}
+
+with socialblade as (
+  select $1::string channel_id
+       , trunc($2::date, 'months') month
+       , $3::int views
+       , 'socialblade' as source
+  from @public.yt_data/import/socialblade/ (file_format => tsv)
+)
+   , channel_monthly as (
+  select channel_id, trunc(date, 'months') month, sum(views) views, 'channel' as source
+  from channel_views_daily d
+  group by channel_id, month
+)
+   , video_monthy as (
+  select channel_id, trunc(date, 'months') month, sum(views) views, 'video' as source
+  from video_stats_daily2
+  group by channel_id, month
+)
+   , video_monthy_old as (
+  select channel_id, trunc(date, 'months') month, sum(views) views, 'video-old' as source
+  from video_stats_daily
+  group by channel_id, month
+)
+   , combined as (
+  select *
+  from socialblade
+  union all
+  select *
+  from channel_monthly
+  union all
+  select *
+  from video_monthy
+  union all
+  select *
+  from video_monthy_old
+)
+   , pivot as (
+  select *
+--        , sum(iff(source='recfluence', views, null)) recfluence
+--        , sum(iff(source='socialblade', views, null)) socialblade
+  from combined
+    pivot ( sum(views) for source in ('socialblade', 'channel', 'video', 'video-old') )
+)
+select p.channel_id
+     , month
+     , "'channel'" as channel
+     , "'socialblade'" as socialblade
+     , "'video'" as video
+     , "'video-old'" as video_old
+from pivot p
+where month>'2019-01-01'

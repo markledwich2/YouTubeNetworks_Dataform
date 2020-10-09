@@ -11,7 +11,6 @@ with delta as (
        , video_id
        , max(updated) over (partition by video_id order by updated desc) as max_updated
        , views-coalesce(lag(views) over (partition by video_id order by updated), 0) as delta_views
-
        -- from date is the previous updated date, of if that is missing the upload_date
        -- sometimes the upload date is more recent than uploads (e.g. live stream scheduled in advance 21HQL59EsQY)
        , lag(updated) over (partition by video_id order by updated) as prev_date
@@ -23,28 +22,42 @@ with delta as (
        , views as total_views
   from video v
   where exists(select channel_id from channel_accepted c where v.channel_id=c.channel_id)
-  --  and video_id='V7Qp4sg5fFg'
-  -- and channel_id = 'UCzQUP1qoWDoEbmsQxvdjxgQ'
-  ${ when(incremental(), `qualify max_updated > (select max(updated) from ${self()})`) }
+   -- and video_id='5n_3mnJfHzY' -- alex jones. Decay logic clumps view to november full refresh
+  --  and channel_id in ('UCzQUP1qoWDoEbmsQxvdjxgQ' --JRE
+  --  ,'UCXIJgqnII2ZOINSWNOGFThA' -- fox
+  --  ,'UCupvZG-5ko_eiXAupbDfxWw' --cnn
+  --  ,'UC3XTzVzaHQEd30rQbuvCtTQ' --last week tonight
+  --  ,'UCnQC_G5Xsjhp9fEJKuIcrSw' --ben shapiro
+  --  ,'UCn4sPeUomNGIr26bElVdDYg' --now this
+  --  ,'UCB1o7_gbFp2PLsamWxFenBg' --x22
+  --  ,'UCk0rJN52_9-cLGW-TeZwDGw' --redpill
+  --  ,'UCldfgbzNILYZA4dmDt4Cd6A' -- secular talk
+  --  ,'UCEh7V-I77Cs9st5gtH4wd7w' --roma army
+  --  , 'UCSYCo8uRGF39qDCxF870K5Q' --owen jones
+  --  )
+ ${ when(incremental(), `qualify max_updated > (select max(updated) from ${self()})`) }
   -- the views spread takes into account previous records of videos. So we should always consider the full set of videos that have been updated
 )
   -- change from a to/form record to one per day
    , days as (
   select date
   from date
-  where date between (select min(from_date) from delta) and greatest((select max(to_date) from delta), current_date()::date))
+  where date between (select min(from_date) from delta) and greatest((select max(to_date) from delta), current_date()::date)
+)
    , vd0 as (
   select date
-       , row_number() over (partition by video_id, updated order by date) as video_smear_no
+       , min(from_date) over (partition by video_id order by updated) as first_from
+       , row_number() over (partition by video_id, date order by updated) as smear_no
        , d.*
-  from days -- query months and join to delta to spread across months sans updates
+  from days -- query days and join to delta to spread across days sans updates
          inner join delta d on d.from_date=date or (d.from_date<date and date<d.to_date)
 )
   -- ensure  record per day, and distribute views more realistically between updates
    , vd1 as (
   select date
        , video_id
-       , min(video_smear_no) video_smear_no
+       , any_value(first_from) first_from
+       , min(smear_no) smear_no
        , any_value(channel_id) channel_id
        , sum(delta_views) delta_views
        , max(total_views) total_views
@@ -61,7 +74,8 @@ with delta as (
   select video_id
        , date
        , channel_id
-       , video_smear_no
+       , smear_no
+
     /*
 views1: When our range is > 1 day and we should give a realistic distribution of views
 to do this I took the average views for 2019 over age and created a formula using wolfram notebook
@@ -70,18 +84,18 @@ because the formula is an approximation we need to adjust as a second step to ma
 
 ML 2020-05-18 this formula makes sense for the lst record, but for in-between smears, it lumps it too much to the first date dates:
 */
-       , datediff(days, from_date::date, date)::int as range_age -- range age is the days old since from_date.
-       , round(delta_views*iff(days>1,
-                               iff(range_age<30 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null),
-                               1)) as views_decay -- up to 14 days of realistic decaying views
-
+       , datediff(days, from_date::date, date)::int range_age -- range age is the days old since from_date.
+       , iff(first_from=from_date, 'decay', 'avg') mode
+       , round(delta_views*iff(days>1,iff(range_age<30 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null), 1)) views_decay -- up to 14 days of realistic decaying views
+       , delta_views/days views_avg
+       , iff(first_from=from_date, views_decay, views_avg) views_estimate -- use decay when estimtting from first date, avg otherwise
        , total_views
        , updated
        , days
        , delta_views
   from vd1
-  where video_smear_no=1
-     or abs(views_decay)>=1 -- only include records where there are at least 1 view. its rounded, so tru-up logic still wrs
+  where smear_no=1
+     or abs(views_decay)>=100 -- only include records where there are at least 100 views. its rounded, so tru-up logic still wrs
 )
   -- the final result, re-select columns to remove any intermediate calculations
    , s as (
@@ -92,12 +106,14 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
        , views_decay
        , delta_views
        , range_age
-       , video_smear_no
+       , smear_no
        , vd2.updated
+       , views_estimate
+       , mode
        -- true-up on the first row with the difference from the total
-       , iff(days>1 and video_smear_no=1,
-             coalesce(views_decay, 0)+delta_views-(sum(coalesce(views_decay, 0)) over (partition by vd2.video_id, vd2.updated))
-    , views_decay) as views
+       , iff(days>1 and range_age=0,
+             coalesce(views_estimate, 0)+delta_views-(sum(coalesce(views_estimate, 0)) over (partition by vd2.video_id, vd2.updated))
+    , views_estimate) as views
 
   from vd2
 )
@@ -123,25 +139,32 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
        , total_views
        , views_decay
        , range_age
-       , video_smear_no
+       , smear_no
        , updated
        , sum(views) over (partition by video_id order by date rows between unbounded preceding and current row) as running_total
   from s
   order by video_id, date
 )
-, channel_duration as (
-  select channel_id, avg(datediff(seconds, '0'::time, duration)) duration_seconds_avg from video_latest
+
+   , channel_duration as (
+  select channel_id, avg(datediff(seconds, '0'::time, duration)) duration_seconds_avg
+  from video_latest
   where duration is not null
   group by channel_id
 )
-select s.video_id
-     , s.channel_id
-     , date
-     , s.views
-     , s.updated
-     , s.views*iff(v.duration is null, duration_seconds_avg, datediff(seconds, '0'::time, v.duration))/60/60*w.pct_watch as watch_hours
-from s
-       left join video_latest v on v.video_id=s.video_id
-       left join video_watch_time w on datediff(seconds, '0'::time, duration) between w.from_s and w.to_s
-    left join channel_duration d on d.channel_id = s.channel_id
-where s.views > 0
+
+   , s2 as (
+  select s.video_id
+       , s.channel_id
+       , date
+       , s.views
+       , s.updated
+       , s.views*iff(v.duration is null, duration_seconds_avg, datediff(seconds, '0'::time, v.duration))/60/60*w.pct_watch as watch_hours
+  from s
+         left join video_latest v on v.video_id=s.video_id
+         left join video_watch_time w on datediff(seconds, '0'::time, duration) between w.from_s and w.to_s
+         left join channel_duration d on d.channel_id=s.channel_id
+  where s.views>0
+)
+select *
+from s2
