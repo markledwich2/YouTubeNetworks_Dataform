@@ -1,0 +1,11 @@
+config {
+  type: "table",
+  dependencies:['video_latest'],
+  tags:['standard']
+}
+
+select  video_id, video_title, channel_id, channel_title
+  from video_latest
+  where (channel_id = 'UCtwMWJr2BFPkuJTnSvCESSQ' and video_title like '%Official Trailer%')
+    or (channel_id = 'UC8-Th83bH_thdKZDJCrn88g' and (description like 'Music guest%' or video_title like '%BTS%'))
+    or (channel_id = 'UCWGljB8djPusdaKtVx1UKfg' and (description like 'From the album%' or description like '%(Official Video)%'))

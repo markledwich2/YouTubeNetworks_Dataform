@@ -86,7 +86,7 @@ ML 2020-05-18 this formula makes sense for the lst record, but for in-between sm
 */
        , datediff(days, from_date::date, date)::int range_age -- range age is the days old since from_date.
        , iff(first_from=from_date, 'decay', 'avg') mode
-       , round(delta_views*iff(days>1,iff(range_age<30 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null), 1)) views_decay -- up to 14 days of realistic decaying views
+       , round(delta_views*iff(days>1,iff(range_age<365*2 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null), 1)) views_decay -- up to 14 days of realistic decaying views
        , delta_views/days views_avg
        , iff(first_from=from_date, views_decay, views_avg) views_estimate -- use decay when estimtting from first date, avg otherwise
        , total_views

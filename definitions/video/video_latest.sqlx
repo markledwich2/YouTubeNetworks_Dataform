@@ -5,6 +5,11 @@ config {
     dependencies: ["video"]
 }
 
-select * from video
+with latest as (
+  select *
+  from video
 ${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
-qualify row_number() over (partition by video_id order by updated desc) = 1
+    qualify row_number() over (partition by video_id order by updated desc)=1
+)
+select *
+from latest

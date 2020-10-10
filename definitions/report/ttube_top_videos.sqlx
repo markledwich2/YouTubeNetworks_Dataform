@@ -5,11 +5,12 @@ config {
 }
 
 with d1 as (
-  select *
+  select d.*
        , (select dateadd(day, -1, max(date)) from video_stats_daily) day_to -- take -1 from latest day because it won't be complete yet
        --, sum(iff(date between anchor and dateadd(day,  -2, anchor), views, 0)) d2
   from video_stats_daily d
   where date>='2019-01-01'
+    and not exists(select * from video_excluded v where v.video_id=d.video_id)
     and exists(select * from channel_accepted c where c.channel_id=d.channel_id)
   --where channel_id in ('UCzQUP1qoWDoEbmsQxvdjxgQ','UCupvZG-5ko_eiXAupbDfxWw')
 )
@@ -22,8 +23,8 @@ with d1 as (
        , sum(watch_hours) watch_hours
   from d1
      , lateral flatten(array_construct(
-    object_construct('range', 1) -- this latest day is always incomplete. don't confuse people with partial results.by comparing days
-    ,  object_construct('range', 1, 'offset', -1)
+      object_construct('range', 1) -- this latest day is always incomplete. don't confuse people with partial results.by comparing days
+    , object_construct('range', 1, 'offset', -1)
     , object_construct('range', 1, 'offset', -2)
     , object_construct('range', 1, 'offset', -3)
     , object_construct('range', 1, 'offset', -4)
@@ -67,4 +68,5 @@ with d1 as (
   select *
   from year_ranges
 )
-select * from d2
+select *
+from d2

@@ -2,9 +2,10 @@ config {
     type: 'incremental',
     tags: ['standard'],
     uniqueKey: ['video_id', 'updated'],
-    dependencies: ['video', 'video_latest']
+    dependencies: ['video_latest']
 }
 
+-- data collected from the watch-page (more info) rather than from the playlist
 select
      -- standard video fields
      -- initially video extra was missing standard fields. Fall back to the video-latest if we have it
