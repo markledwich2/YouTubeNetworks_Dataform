@@ -17,7 +17,6 @@ with cg as (
        , v.channel_title
        , v.channel_id
        , v.duration
-       , v.thumb_high
        , iff(caption_group=0, object_construct(
       'caption', caption
     , 'title', v.video_title

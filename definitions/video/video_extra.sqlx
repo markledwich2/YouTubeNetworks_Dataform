@@ -20,9 +20,6 @@ select
      , coalesce(v:Description::string, l.description) as description
      , coalesce(try_to_time(v:Duration::string), l.duration) as duration
      , coalesce(v:Keywords::array, l.keywords) as keywords
-     , coalesce(v:Thumbnail:HighResUrl::string, v:Thumbnail:HighRestUrl::string, v:Thumbnails:HighResUrl::string, l.thumb_high) as thumb_high
-     , coalesce(v:Thumbnail:StandardResUrl::string, v:Thumbnails:StandardResUrl::string, l.thumb_standard) as thumb_standard
-     , coalesce(v:Thumbnail:LowResUrl::string, v:Thumbnails:LowResUrl::string, l.thumb_low) as thumb_low
      , v:CommentCount::int as comment_count
      , v:Updated::timestamp_ntz as updated
      , v:Source::string as source
@@ -32,6 +29,8 @@ select
      , v:Ad::string as ad
      , coalesce(v:Error, v:error)::string as error
      , coalesce(v:SubError, v:subError)::string as sub_error
+
+     --these erorr clasifications are out of date
      , case
          when error like 'This video has been removed by the uploader' then 'Removed - by uploader'
          when error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Removed - violated community guidelines'
