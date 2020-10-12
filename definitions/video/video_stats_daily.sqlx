@@ -14,7 +14,6 @@ with delta as (
        , greatest(1.0, datediff(days, from_date, to_date))::int as days --be careful. needs to match the v1 left join. e.g. if days rows match with delta, this should also be 2
   from video_views_raw v
   where exists(select channel_id from channel_accepted c where v.channel_id=c.channel_id)
-    --TODO change this to use dataform incremental
   --and to_date > '2019-01-01'
 --    and video_id in (
 --      'AZZNvT1vaJg' -- JRE #1191
@@ -78,8 +77,8 @@ because the formula is an approximation we need to adjust as a second step to ma
 */
        , datediff(days, from_date::date, date)::int range_age -- range age is the days old since from_date.
        , iff(first_upload_date=from_date, 'decay', 'avg') mode
-       , round(delta_views*iff(days>1, iff(range_age<365*2 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null),
-                               1)) views_decay -- up to 14 days of realistic decaying views
+       , round(delta_views*iff(days>1, iff(range_age<120 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null),
+                               1)) views_decay -- up to 120 days of realistic decaying views
        , delta_views/days views_avg
        , iff(first_upload_date=from_date, views_decay, views_avg) views_estimate -- use decay when estimating from first date, avg otherwise
        , total_views
@@ -87,7 +86,7 @@ because the formula is an approximation we need to adjust as a second step to ma
        , days
        , delta_views
   from vd1
-  where abs(views_estimate)>0 -- only include records where there are at least 100 views. its rounded, so tru-up logic still wrs
+  where range_age=0 or abs(views_estimate)>=100 -- only include records at the start of the range, or if there are at least 100 views. tru-up logic will place these crums in the from_date record
 )
   -- the final result, re-select columns to remove any intermediate calculations
   -- true-up any missing views to the first in the range. partition by updated to decay this particular this delta row
@@ -154,10 +153,11 @@ because the formula is an approximation we need to adjust as a second step to ma
          left join video_latest v on v.video_id=s.video_id
          left join video_watch_time w on datediff(seconds, '0'::time, duration) between w.from_s and w.to_s
          left join channel_duration d on d.channel_id=s.channel_id
+  where s.views > 0
 )
 select *
 from s2
 
 post_operations {
-  alter table ${self()} cluster by (channel_id, video_id)
+  alter table ${self()} cluster by (date, channel_id)
 }
