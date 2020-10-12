@@ -1,18 +1,26 @@
 config {
-  type: "incremental",
+  type: "table",
   tags:['standard'],
-  dependencies:['video_stats_daily', 'channel_accepted'],
-  uniqueKey:['video_id', 'period_value', 'period_type' ]
+  dependencies:['video_stats_daily', 'channel_accepted']
 }
 
-with relative_ranges as (
+with vd_filtered as (
+  select d.*
+       --, sum(iff(date between anchor and dateadd(day,  -2, anchor), views, 0)) d2
+  from video_stats_daily d
+  where date>='2019-01-01'
+    and not exists(select * from video_excluded v where v.video_id=d.video_id)
+    and exists(select * from channel_accepted c where c.channel_id=d.channel_id)
+  --where channel_id in ('UCzQUP1qoWDoEbmsQxvdjxgQ','UCupvZG-5ko_eiXAupbDfxWw')
+)
+   , relative_ranges as (
   select video_id
        , channel_id
-       , dateadd(day, coalesce(f.value: offset::int, 0), (select max(date) from video_stats_daily)) as period_value
-       , 'd'||f.value: range::int as period_type
+       , dateadd(day, coalesce(f.value: offset::int, 0), (select max(date) from vd_filtered)) period_value
+       , 'd'||f.value:range::int period_type
        , sum(views) views
        , sum(watch_hours) watch_hours
-  from video_stats_daily
+  from vd_filtered
      , lateral flatten(array_construct(
       object_construct('range', 1) -- this latest day is always incomplete. don't confuse people with partial results.by comparing days
     , object_construct('range', 1, 'offset', -1)
@@ -25,10 +33,8 @@ with relative_ranges as (
     , object_construct('range', 7)
     , object_construct('range', 30)
     )) f
-    
-  where date between dateadd(day, 1-coalesce(f.value: range::int, 0), period_value) and (select max(date) from video_stats_daily)
+  where date between dateadd(day, 1-coalesce(f.value: range::int, 0), period_value) and (select max(date) from vd_filtered)
   group by 1, 2, 3, 4
-     -- no incremental
 )
    , month_ranges as (
   select video_id
@@ -37,13 +43,8 @@ with relative_ranges as (
        , 'm'
        , sum(views)
        , sum(watch_hours)
-  from video_stats_daily
-  where
-    -- incremental: update current month
-    -- full: update up to 1 year back 
-    ${ when(incremental(), `date >= trunc((select max(date) from video_stats_daily), 'month')`,  
-      `date>=dateadd(year, -1, (select dateadd(day, -1, max(date)) from video_stats_daily))`)}
-    
+  from vd_filtered
+  where date>=dateadd(year, -1, (select dateadd(day, -1, max(date)) from vd_filtered)) -- only do 1y back
   group by 1, 2, 3, 4
 )
    , year_ranges as (
@@ -53,12 +54,7 @@ with relative_ranges as (
        , 'y'
        , sum(views) views
        , sum(watch_hours) watch_hours
-  from video_stats_daily
-      where
-      -- incremental: update current year
-      -- full: update up to 1 year back 
-      ${ when(incremental(), `date >= trunc((select max(date) from video_stats_daily), 'year')`, 
-      `date>=trunc(dateadd(year, -1, (select dateadd(day, -1, max(date)) from video_stats_daily)), 'year')`)}
+  from vd_filtered
   group by 1, 2, 3, 4
 )
    , d2 as (
