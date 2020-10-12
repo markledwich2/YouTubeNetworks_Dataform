@@ -13,3 +13,7 @@ ${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
 )
 select *
 from latest
+
+post_operations {
+  alter table ${self()} cluster by (channel_id, video_id)
+}
