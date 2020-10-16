@@ -5,7 +5,6 @@ config {
     dependencies: ['video', 'channel_accepted', 'video_latest', 'date', 'video_watch_time', 'video_views_raw']
 }
 
-
 -- video_stats_daily spreads video views from our patchy as-at-time records into an estimate for views on each day
 with delta as (
   select *
@@ -15,7 +14,8 @@ with delta as (
   from video_views_raw v
   where exists(select channel_id from channel_accepted c where v.channel_id=c.channel_id)
   --and to_date > '2019-01-01'
---    and video_id in (
+   -- and video_id = 'eMaKxR2Blr4' -- alice down the rabbit hole
+        --'Z4SXxxUnq0U' -- fox news form aug
 --      'AZZNvT1vaJg' -- JRE #1191
 -- --    , '5n_3mnJfHzY' -- alex jones. Decay logic clumps view to november full refresh
 --     )
@@ -76,7 +76,7 @@ https://www.wolframcloud.com/obj/6f22519c-cb44-41bc-85e1-3f5e531b4e05
 because the formula is an approximation we need to adjust as a second step to make it add up perfectly
 */
        , datediff(days, from_date::date, date)::int range_age -- range age is the days old since from_date.
-       , iff(first_upload_date=from_date, 'decay', 'avg') mode
+       , iff(first_upload_date::date=from_date, 'decay', 'avg') mode
        , round(delta_views*iff(days>1, iff(range_age<120 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null),
                                1)) views_decay -- up to 120 days of realistic decaying views
        , delta_views/days views_avg
@@ -128,9 +128,12 @@ because the formula is an approximation we need to adjust as a second step to ma
        , views
        , total_views
        , views_decay
+       , views_estimate
        , range_age
        , updated
+       , mode
        , sum(views) over (partition by video_id order by date rows between unbounded preceding and current row) as running_total
+
   from s
   order by video_id, date
 )
