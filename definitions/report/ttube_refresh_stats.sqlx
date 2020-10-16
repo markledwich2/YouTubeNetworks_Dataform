@@ -1,0 +1,35 @@
+config {
+  type: "table",
+  dependencies: ['ttube_top_videos'],
+  tags:['standard']
+}
+
+with periods as (
+  select period_type, period_value, from_to: from::date date_from, from_to: to::date date_to
+  from (
+         select distinct period_type
+                       , period_value::date period_value
+                       , substr(period_type, 1, 1) mode
+                       , iff(mode='d', trim(period_type, 'd')::int, 1) range
+                       , case mode
+                           when 'd' then object_construct('from', dateadd(day, 1-range, period_value), 'to', period_value)
+                           when 'm' then object_construct('from', dateadd(month, 1-range, period_value), 'to', last_day(period_value, month))
+                           when 'y' then object_construct('from', dateadd(year, 1-range, period_value), 'to', last_day(period_value, year))
+           end from_to
+         from ttube_top_videos
+
+       )
+)
+   , vid_refresh as (
+  select period_type
+       , period_value
+       , channel_id
+       , min(first_upload_date) oldest_video_refreshed
+       , max(v.updated) latest_refresh
+       , count(distinct v.updated::date) updates
+       , count(distinct v.video_id) videos
+  from video_views_raw v
+         left join periods p on v.updated::date between p.date_from and p.date_to
+  group by 1, 2, 3
+)
+select * from vid_refresh
