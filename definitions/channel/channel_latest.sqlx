@@ -3,7 +3,6 @@ config {
   tags: ["standard"],
   uniqueKey:['channel_id']
 }
-
 with cv as (
   select channel_id
        , sum(views) as channel_video_views
@@ -27,6 +26,16 @@ with cv as (
    , latest_names as (
   select channel_id, channel_title
   from latest
+)
+   , dead_dates as (
+  select *
+  from (
+         select channel_id, updated death_recorded
+         from channel c
+           qualify c.status_msg='Dead'
+             and lag(c.status_msg) over (partition by channel_id order by updated)='Alive' -- it is dead, but was alive last update
+       )
+    qualify row_number() over (partition by channel_id order by death_recorded desc)=1 --latest death recorded
 )
    , c2 as (
   select c.*
@@ -73,10 +82,13 @@ with cv as (
                                        where subs>0
                                      )*10000 as meets_sub_criteria
        , cr.reviews_all>=1 and cr.lr is not null and cr.relevance>0.3 as meets_review_criteria
+       , iff(status_msg='Dead', d.death_recorded, null) death_recorded
   from latest c
-         left join latest_names mc on c.main_channel_id=mc.channel_id
+         left join latest_names mc
+                   on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
          left join channel_review cr on c.channel_id=cr.channel_id
+         left join dead_dates d on d.channel_id=c.channel_id
 )
 select *
 from c2
