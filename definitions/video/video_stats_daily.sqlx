@@ -80,7 +80,7 @@ because the formula is an approximation we need to adjust as a second step to ma
        , round(delta_views*iff(days>1, iff(range_age<120 and range_age>=0, 1.0/(pow(1.8+range_age, 1.77)), null),
                                1)) views_decay -- up to 120 days of realistic decaying views
        , delta_views/days views_avg
-       , iff(first_upload_date=from_date, views_decay, views_avg) views_estimate -- use decay when estimating from first date, avg otherwise
+       , iff(mode = 'decay', views_decay, views_avg) views_estimate -- use decay when estimating from first date, avg otherwise
        , total_views
        , updated
        , days
