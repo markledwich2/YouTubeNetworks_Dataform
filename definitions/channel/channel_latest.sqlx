@@ -77,7 +77,7 @@ with cv as (
            else 'YouTube'
     end as media
        , subs>10000 or channel_views>(
-                                       select avg(channel_views/subs)
+                                       select median(channel_views/subs)
                                        from channel
                                        where subs>0
                                      )*10000 as meets_sub_criteria
