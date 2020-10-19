@@ -33,7 +33,7 @@ with vd_filtered as (
     , object_construct('range', 7)
     , object_construct('range', 30)
     )) f
-  where date between dateadd(day, 1-coalesce(f.value: range::int, 0), period_value) and (select max(date) from vd_filtered)
+  where date between dateadd(day, 1-coalesce(f.value: range::int, 0), period_value) and period_value
   group by 1, 2, 3, 4
 )
    , month_ranges as (
