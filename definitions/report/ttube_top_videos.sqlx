@@ -22,16 +22,16 @@ with vd_filtered as (
        , sum(watch_hours) watch_hours
   from vd_filtered
      , lateral flatten(array_construct(
-      object_construct('range', 1) -- this latest day is always incomplete. don't confuse people with partial results.by comparing days
-    , object_construct('range', 1, 'offset', -1)
+      --object_construct('range', 1) -- this latest day is always incomplete. don't confuse people with partial results.by comparing days
+    object_construct('range', 1, 'offset', -1)
     , object_construct('range', 1, 'offset', -2)
     , object_construct('range', 1, 'offset', -3)
     , object_construct('range', 1, 'offset', -4)
     , object_construct('range', 1, 'offset', -5)
     , object_construct('range', 1, 'offset', -6)
     , object_construct('range', 1, 'offset', -7)
-    , object_construct('range', 7)
-    , object_construct('range', 30)
+    , object_construct('range', 7, 'offset', -1)
+    , object_construct('range', 30, 'offset', -1)
     )) f
   where date between dateadd(day, 1-coalesce(f.value: range::int, 0), period_value) and period_value
   group by 1, 2, 3, 4
