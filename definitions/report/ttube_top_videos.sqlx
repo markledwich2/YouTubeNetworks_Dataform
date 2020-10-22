@@ -32,6 +32,7 @@ with vd_filtered as (
     , object_construct('range', 1, 'offset', -7)
     , object_construct('range', 7, 'offset', -1)
     , object_construct('range', 30, 'offset', -1)
+    , object_construct('range', 365, 'offset', -1)
     )) f
   where date between dateadd(day, 1-coalesce(f.value: range::int, 0), period_value) and period_value
   group by 1, 2, 3, 4
@@ -44,7 +45,7 @@ with vd_filtered as (
        , sum(views)
        , sum(watch_hours)
   from vd_filtered
-  where date>=dateadd(year, -1, (select dateadd(day, -1, max(date)) from vd_filtered)) -- only do 1y back
+  where date_trunc(month, date)>=date_trunc(month, dateadd(year, -1, (select max(date) from vd_filtered))) -- 1y back (full month)
   group by 1, 2, 3, 4
 )
    , year_ranges as (
