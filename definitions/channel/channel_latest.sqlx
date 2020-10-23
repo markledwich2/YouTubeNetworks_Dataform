@@ -1,7 +1,8 @@
 config {
   type: "table",
   tags: ["standard"],
-  uniqueKey:['channel_id']
+  uniqueKey:['channel_id'],
+  dependencies:['channel', 'channel_review']
 }
 with cv as (
   select channel_id
