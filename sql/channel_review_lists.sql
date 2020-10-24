@@ -1,3 +1,6 @@
+use role  recfluence;
+;
+
 with file_lists as (
   select $1::string as channel_id
   , regexp_substr(metadata$filename, '([\\w.]+)\.txt', 1, 1, 'e') as list
@@ -43,12 +46,17 @@ with file_lists as (
   order by channel_views desc
   limit :limit
 )
-
+  , whide_id_under_reviewed as (
+     select channel_id, concat('WhiteID not-reviewed - ', mod(abs(hash(c.channel_id)), 4)) as list
+     from channel_latest c
+     where array_contains('WhiteIdentitarian'::variant, c.tags) and reviews_human < 1
+)
    , u as (
   select * from file_lists
   union all select *  from random_under_reviewed
   union all select * from popular_under_reviewed
   union all select * from popular_non_reviewed_tag
+  union all select * from whide_id_under_reviewed
 )
 , s as (
   select u.channel_id, u.list
