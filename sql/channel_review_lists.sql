@@ -1,6 +1,3 @@
-use role  recfluence;
-;
-
 with file_lists as (
   select $1::string as channel_id
   , regexp_substr(metadata$filename, '([\\w.]+)\.txt', 1, 1, 'e') as list
