@@ -44,9 +44,13 @@ with file_lists as (
   limit :limit
 )
   , whide_id_under_reviewed as (
-     select channel_id, concat('WhiteID not-reviewed - ', mod(abs(hash(c.channel_id)), 4)) as list
+     select channel_id
+            , concat(array_to_string(
+                array_intersection(array_construct('WhiteIdentitarian', 'QAnon'), c.tags), '|')
+                , ' not-reviewed - '
+                , mod(abs(hash(c.channel_id)), 4)) as list
      from channel_latest c
-     where array_contains('WhiteIdentitarian'::variant, c.tags) and reviews_human < 1
+     where arrays_overlap(array_construct('WhiteIdentitarian', 'QAnon'), c.tags) and reviews_human < 1
 )
    , u as (
   select * from file_lists
