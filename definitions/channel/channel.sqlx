@@ -14,7 +14,7 @@ with cstage as (
        , v:ChannelViews::int as channel_views
        , v:Country::string as country
        , v:Updated::timestamp_ntz as updated
-       , v:StatusMessage::string as status_msg
+       , v:Status::string as status_msg
        , v:"Subscriptions"::array as subscriptions
        , v:Keywords::string as keywords
        , v:DefaultLanguage::string as default_langauge
