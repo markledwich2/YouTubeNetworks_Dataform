@@ -49,7 +49,7 @@ with file_lists as (
                 array_intersection(array_construct('WhiteIdentitarian', 'QAnon'), c.tags), '|')
                 , ' not-reviewed - '
                 , mod(abs(hash(c.channel_id)), 4)) as list
-     from channel_latest c
+     from channel_accepted c
      where arrays_overlap(array_construct('WhiteIdentitarian', 'QAnon'), c.tags) and reviews_human < 1
 )
    , u as (
