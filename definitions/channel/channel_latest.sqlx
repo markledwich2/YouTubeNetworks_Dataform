@@ -51,6 +51,8 @@ with cv as (
        , cr.tags as tags
        , cr.lr
        , cr.relevance
+       , cr.public_reviewer_notes
+       , cr.public_creator_notes
        , coalesce(cr.reviews_all, 0) as reviews_all
        , coalesce(cr.reviews_algo, 0) as reviews_algo
        , reviews_all-reviews_algo as reviews_human
