@@ -8,6 +8,8 @@ config {
        , v:LR::string as lr
        , v:MainChannelId::string as main_channel_id
        , v:Notes::string as notes
+       , v:PublicReviewerNotes::string as public_reviewer_notes
+       , v:PublicCreatorNotes::string as public_creator_notes
        , v:Relevance::number/10 as relevance
        , v:Updated::timestamp_ntz as updated
        , v:SoftTags::array as tags
