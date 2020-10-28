@@ -9,6 +9,8 @@ select channel_title
      , r.value:relevance::double as reviewer_relevance
      , left(r.value: email::string, 3) as reviewer_code
      , r.value:updated::timestamp_ntz updated
+     , public_reviewer_notes
+     , public_creator_notes
 from channel_review
    , lateral flatten(input => reviews) r
 order by updated desc
