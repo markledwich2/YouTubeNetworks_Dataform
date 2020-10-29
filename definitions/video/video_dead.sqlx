@@ -1,0 +1,30 @@
+config {
+  type: "table",
+  dependencies: ['video_latest', 'channel_latest', 'video']
+}
+
+with channel_latest_update as (
+  select channel_id, video_id, upload_date, updated
+  from video
+  where upload_date>'2020-01-01'
+    and updated>'2020-10-01'
+    qualify row_number() over (partition by channel_id order by updated::date desc, upload_date)=1
+)
+   , dead_vids as (
+  select v.video_id
+       , video_title
+       , c.channel_title
+       , v.channel_id
+       , u.video_id as latest_update_video_id
+       , v.views
+       , v.updated
+       -- videos updated more recently (by 2 days or more) and has an older upload date
+  from video_latest v
+         inner join channel_latest_update u on u.channel_id=v.channel_id and u.upload_date<v.upload_date and u.updated::date>v.updated::date
+  left join channel_latest c on c.channel_id=v.channel_id
+  where array_contains('QAnon'::variant, c.tags) --todo remove this once we are satified
+  --v.channel_id = 'UCL5QWloOWiD_H6nc_05PHBA' and
+  --exists(select * from video f where f.channel_id=v.channel_id and f.upload_date < v.upload_date and f.updated > v.updated)
+)
+select *
+from dead_vids v
