@@ -1,5 +1,5 @@
 config {
-  type: "view",
+  type: "table",
   tags: "standard"
 }
 
@@ -8,4 +8,6 @@ select to_date(regexp_substr(metadata$filename, 'soft_tags_([0-9]+)', 1, 1, 'e')
      , $2::double as relevance
      , $3::string as tag
      , $4::double as confidence
+     , dense_rank() over (order by updated desc) update_no
+-- path directly to the latest file
 from @public.yt_data/import/sam_reviews/all_political_soft_tags_20201006.txt.gz (file_format => tsv)
