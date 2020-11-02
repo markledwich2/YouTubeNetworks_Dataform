@@ -1,0 +1,59 @@
+config {
+  type: "table",
+  dependencies: ['channel_review_sam_raw'],
+  tags: ["init"]
+}
+
+with
+  channel_sam_reviews as (
+  select channel_id
+       , update_no
+       , array_agg(tag) within group ( order by tag) tags
+       , any_value(lr) as lr
+       , any_value(updated) as updated
+       , any_value(relevance) as relevance
+  from (
+         select channel_id
+              , first_value(lr) over (partition by channel_id, update_no order by lr_conf desc) lr
+              , iff(tag in ('MainstreamNews','MainstreamMedia'), 'Mainstream News', tag) as tag
+              , relevance
+              , updated
+              , update_no
+         from (
+                select channel_id
+                     , iff(tag in ('L','C','R'), tag, null) as lr
+                     , iff(lr is null, 0, confidence) as lr_conf
+                     , iff(tag in ('L','C','R','YouTube'), null, tag) as tag
+                     , relevance
+                     , confidence
+                     , updated
+                     , update_no
+                from channel_review_sam_raw
+              )
+         where confidence>=0.5
+       )
+  group by channel_id, update_no
+)
+     -- use this to chack major model updates
+   , compare as (
+  select r.channel_id
+       , c.channel_title
+       , c.channel_views
+       , array_to_string(r.tags, '|') tags
+       , array_to_string(prev_tags, '|') prev_tags
+       , r.lr
+       , prev_lr
+  from (
+         select *
+              , lead(tags) over (partition by channel_id order by update_no) prev_tags
+              , lead(lr) over (partition by channel_id order by update_no) prev_lr
+         from channel_sam_reviews r
+           qualify update_no=1
+       ) r
+         left join channel_latest c on c.channel_id=r.channel_id
+  where r.tags!=prev_tags
+     or r.lr!=prev_lr
+  order by r.channel_id, update_no
+)
+select *
+from channel_sam_reviews

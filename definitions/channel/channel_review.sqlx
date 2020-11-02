@@ -1,37 +1,14 @@
 config {
     type:'table',
     tags:["standard"],
-    dependencies: ['channel_review_sam_raw']
+    dependencies: ['channel_review_sam']
 }
 
+
 with sam_reviews as (
-  select channel_id
-       , array_agg(tag) as tags
-       , any_value(lr) as lr
-       , max(updated) as updated
-       , any_value(relevance) as relevance
-  from (
-         select channel_id
-              , first_value(lr) over (partition by channel_id order by lr_conf desc) lr
-              , case
-                  when tag in ('MainstreamNews','MainstreamMedia') then 'Mainstream News'
-                  else tag
-           end as tag
-              , relevance
-              , updated
-         from (
-                select channel_id
-                     , iff(tag in ('L','C','R'), tag, null) as lr
-                     , iff(lr is null, 0, confidence) as lr_conf
-                     , iff(tag in ('L','C','R','YouTube'), null, tag) as tag
-                     , relevance
-                     , confidence
-                     , updated
-                from channel_review_sam_raw
-              )
-         where confidence>=0.5
-       )
-  group by channel_id
+  select *
+  from channel_review_sam
+  where update_no=1
 )
   -- union human and algo reviews
    , all_reviews as (
@@ -95,7 +72,7 @@ with sam_reviews as (
   select channel_id, public_reviewer_notes, public_creator_notes
   from all_reviews
   where reviews_algo=0
-     qualify row_number() over (partition by channel_id order by updated desc) =1
+    qualify row_number() over (partition by channel_id order by updated desc)=1
 )
 
 
