@@ -2,13 +2,14 @@ config {
   type: "table",
   dependencies: ['video_latest', 'channel_latest', 'video']
 }
+
 with channel_latest_update as (
   select channel_id
        , video_id
        , upload_date
        , updated
   from video
-  --where channel_title='TEDx Talks'
+  --where channel_id = 'UCkv4SxLREmIKoUYzabJX4dQ'
   qualify row_number() over (partition by channel_id order by updated::date desc, upload_date)=1
 )
    , video_latest_no as (
@@ -17,17 +18,19 @@ with channel_latest_update as (
        -- we ca only go back 20k videos, so they will falsely look dead
     qualify row_number() over (partition by channel_id order by upload_date desc)<20000
 )
-   , dead_vids as (
+   , missing as (
   select v.video_id
        , v.video_title
        , c.channel_title
        , v.channel_id
        , v.updated
        , v.upload_date
+      , u.updated latest_update
+  , datediff(d, v.updated::date, u.updated::date) missing_days
   from video_latest_no v
-         -- additional filter on this join for videos updated more recently (by 1 days or more) and has an older upload date
-         inner join channel_latest_update u on u.channel_id=v.channel_id and u.upload_date<v.upload_date and u.updated::date>v.updated::date
+         -- additional filter on this join for videos updated more recently (by 2 days or more) and has an older upload date
+         inner join channel_latest_update u on u.channel_id=v.channel_id and u.upload_date<v.upload_date and missing_days >= 1
          left join channel_latest c on c.channel_id=v.channel_id
 )
 select *
-from dead_vids v
+from missing v
