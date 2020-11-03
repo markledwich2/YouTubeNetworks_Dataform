@@ -5,54 +5,58 @@ config {
     dependencies: ['video_latest']
 }
 
--- data collected from the watch-page (more info) rather than from the playlist
-select
-     -- standard video fields
-     -- initially video extra was missing standard fields. Fall back to the video-latest if we have it
-  coalesce(v:Id, v:id, v:VideoId)::string as video_id
-     , coalesce(v:Title::string, l.video_title) as video_title
-     , coalesce(v:ChannelId::string, l.channel_id) as channel_id
-     , coalesce(v:ChannelTitle::string, l.channel_title) as channel_title
-     , coalesce(v:UploadDate::timestamp_ntz, l.upload_date) as upload_date
-     , coalesce(v:Statistics:ViewCount::int, l.views) as views
-     , coalesce(v:Statistics:LikeCount::int, l.likes) as likes
-     , coalesce(v:Statistics:DislikeCount::int, l.dislikes) as dislikes
-     , coalesce(v:Description::string, l.description) as description
-     , coalesce(try_to_time(v:Duration::string), l.duration) as duration
-     , coalesce(v:Keywords::array, l.keywords) as keywords
-     , v:CommentCount::int as comment_count
-     , v:Updated::timestamp_ntz as updated
-     , v:Source::string as source
+ select
+       -- standard video fields
+       -- initially video extra was missing standard fields. Fall back to the video-latest if we have it
+    coalesce(v:Id, v:id, v:VideoId)::string as video_id
+       , coalesce(v:Title::string, l.video_title) as video_title
+       , coalesce(v:ChannelId::string, l.channel_id) as channel_id
+       , coalesce(v:ChannelTitle::string, l.channel_title) as channel_title
+       , coalesce(v:UploadDate::timestamp_ntz, l.upload_date) as upload_date
+       , coalesce(v:Statistics:ViewCount::int, l.views) as views
+       , coalesce(v:Statistics:LikeCount::int, l.likes) as likes
+       , coalesce(v:Statistics:DislikeCount::int, l.dislikes) as dislikes
+       , coalesce(v:Description::string, l.description) as description
+       , coalesce(try_to_time(v:Duration::string), l.duration) as duration
+       , coalesce(v:Keywords::array, l.keywords) as keywords
+       , v:CommentCount::int as comment_count
+       , v:Updated::timestamp_ntz as updated
+       , v:Source::string as source
 
-     -- extra fields (coalesce is for backwards compatibility with the first batch that were using different capitalization)
-     , coalesce(v:HasAd, v:hasAd)::boolean as had_ad
-     , v:Ad::string as ad
-     , coalesce(v:Error, v:error)::string as error
-     , coalesce(v:SubError, v:subError)::string as sub_error
+       -- extra fields (coalesce is for backwards compatibility with the first batch that were using different capitalization)
+       , coalesce(v:HasAd, v:hasAd)::boolean as had_ad
+       , v:Ad::string as ad
+       , coalesce(v:Error, v:error)::string as error
+       , coalesce(v:SubError, v:subError)::string as sub_error
 
-     --these erorr clasifications are out of date
-     , case
-         when error like 'This video has been removed by the uploader' then 'Removed - by uploader'
-         when error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Removed - violated community guidelines'
-         when error like 'This video is no longer available due to a copyright claim%' then 'Removed - copyright claim'
-         when error like 'This video has been removed for violating YouTube''s policy on harassment and bullying.'
-           then 'Removed - harassment and bullying'
-         when error like 'This video is unavailable.' then 'Unavailable'
-         when error like 'Restricted' then 'Restricted'
-         when error like 'Warning' then 'Content Warning'
-         when error like 'This video has been removed for violating YouTube''s Terms of Service.' then 'Removed - violated terms of service'
-         when error like 'This video has been removed for violating YouTube''s policy on hate speech%' then 'Removed - Hate speech'
-         when error like 'This live stream recording is not available.' then 'Unavailable'
-         when error like 'This video is no longer available due to a privacy claim by a third party.' then 'Removed - privacy claim'
-         when error like 'This video is unavailable on this device.' then 'Unavailable - device'
-         when error like 'This video has been removed for violating YouTube''s policy on nudity or sexual content.' then 'Removed - sexual content'
-         when error like 'This video is no longer available because the YouTube account associated with this video has been terminated.'
-           then 'Removed - channel terminated'
-         when error like 'Content Warning' and sub_error like '%This video is private%' then 'Content Warning - private'
-         when error like 'Content Warning' then 'Content warning'
-  end as error_type
-     , iff(error_type='Removed - copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
-from video_extra_stage
-       left join video_latest l on l.video_id=coalesce(v:Id, v:id, v:VideoId)::string
-     ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
-  qualify row_number() over (partition by video_id, updated order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes
+       --these erorr clasifications are out of date
+       , case
+           when error is null then null
+           when error in('Restricted','Sign in to confirm your age') then 'Restricted'
+           when error='Private video' or (error='Content Warning' and sub_error like 'If the owner of this video has granted you access%') then 'Private'
+           when error='The uploader has not made this video available in your country.' then 'Not available in USA'
+
+           when sub_error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Community guidelines'
+           when sub_error='This video has been removed by the uploader' or error='This video has been removed by the uploader' then 'Removed by uploader'
+           when sub_error='This full-length episode is available for purchase.' then 'Paywall'
+
+           when error like 'This video is no longer available due to a copyright claim%' then 'Copyright claim'
+           when error like 'This video has been removed for violating YouTube''s policy on harassment and bullying.' then 'Harassment and bullying'
+           when error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Community guidelines'
+           when error like 'This video has been removed for violating YouTube''s Terms of Service.' then 'Terms of service'
+           when error like 'This video has been removed for violating YouTube''s policy on hate speech%' then 'Hate speech'
+           when error like 'This live stream recording is not available.' then 'Unavailable'
+           when error like 'This video is no longer available due to a privacy claim by a third party.' then 'Privacy claim'
+           when error like 'This video is unavailable on this device.' then 'Device'
+           when error like 'This video has been removed for violating YouTube''s policy on nudity or sexual content.' then 'Sexual content'
+           when error like 'This video is no longer available because the YouTube account associated with this video has been terminated.'
+             then 'Channel terminated'
+
+           when error in ('Video unavailable','This video is unavailable.') then 'Unavailable'
+           else 'Unknown'
+    end as error_type
+       , iff(error_type='Copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
+  from video_extra_stage
+         left join video_latest l on l.video_id=coalesce(v:Id, v:id, v:VideoId)::string
+       ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
+    qualify row_number() over (partition by video_id, updated order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes
