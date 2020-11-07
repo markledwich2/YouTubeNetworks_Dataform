@@ -1,6 +1,7 @@
 config {
   type: "table",
-  dependencies: ['video_latest', 'channel_latest', 'video']
+  dependencies: ['video_latest', 'channel_latest', 'video', 'channel_accepted'],
+  tags: ['standard']
 }
 
 with channel_latest_update as (
@@ -8,13 +9,15 @@ with channel_latest_update as (
        , video_id
        , upload_date
        , updated
-  from video
-  --where channel_id = 'UCkv4SxLREmIKoUYzabJX4dQ'
+  from video v
+  where exists(select * from channel_accepted c where c.channel_id = v.channel_id)
+  --and channel_id = 'UCkv4SxLREmIKoUYzabJX4dQ'
   qualify row_number() over (partition by channel_id order by updated::date desc, upload_date)=1
 )
    , video_latest_no as (
   select *
-  from video_latest
+  from video_latest v
+  where exists(select * from channel_accepted c where c.channel_id = v.channel_id)
        -- we ca only go back 20k videos, so they will falsely look dead
     qualify row_number() over (partition by channel_id order by upload_date desc)<20000
 )
