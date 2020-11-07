@@ -1,11 +1,12 @@
 config {
     type: 'incremental',
     tags: ['standard'],
-    uniqueKey: ['video_id', 'updated'],
+    uniqueKey: ['video_id'],
     dependencies: ['video_latest']
 }
 
- select
+with structure as (
+  select
        -- standard video fields
        -- initially video extra was missing standard fields. Fall back to the video-latest if we have it
     coalesce(v:Id, v:id, v:VideoId)::string as video_id
@@ -39,7 +40,9 @@ config {
            when sub_error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Community guidelines'
            when sub_error='This video has been removed by the uploader' or error='This video has been removed by the uploader' then 'Removed by uploader'
            when sub_error='This full-length episode is available for purchase.' then 'Paywall'
+           when sub_error like '%copyright%' then 'Copyright claim'
 
+          -- old messages
            when error like 'This video is no longer available due to a copyright claim%' then 'Copyright claim'
            when error like 'This video has been removed for violating YouTube''s policy on harassment and bullying.' then 'Harassment and bullying'
            when error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Community guidelines'
@@ -55,8 +58,14 @@ config {
            when error in ('Video unavailable','This video is unavailable.') then 'Unavailable'
            else 'Unknown'
     end as error_type
-       , iff(error_type='Copyright claim', regexp_substr(error, 'copyright claim by (.+)\.', 1, 1, 'e'), null) as copyright_holder
-  from video_extra_stage
+    --This video contains content from WMG, who has blocked it in your country on copyright grounds.
+       , iff(error_type='Copyright claim', coalesce(
+          regexp_substr(sub_error, 'content from (.+?),', 1, 1, 'e'),
+         regexp_substr(sub_error, 'copyright claim by (.+?).', 1, 1, 'e')) , null) copyright_holder
+  from video_extra_stage s
          left join video_latest l on l.video_id=coalesce(v:Id, v:id, v:VideoId)::string
-       ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
-    qualify row_number() over (partition by video_id, updated order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes
+)
+select *
+from structure
+${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
+qualify row_number() over (partition by video_id order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes

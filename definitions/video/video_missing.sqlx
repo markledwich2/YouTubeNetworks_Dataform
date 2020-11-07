@@ -15,17 +15,18 @@ with channel_latest_update as (
   qualify row_number() over (partition by channel_id order by updated::date desc, upload_date)=1
 )
    , video_latest_no as (
-  select *
+  select *, row_number() over (partition by channel_id order by upload_date desc) video_no
   from video_latest v
   where exists(select * from channel_accepted c where c.channel_id = v.channel_id)
        -- we ca only go back 20k videos, so they will falsely look dead
-    qualify row_number() over (partition by channel_id order by upload_date desc)<20000
+    qualify video_no<20000
 )
    , missing as (
   select v.video_id
        , v.video_title
        , c.channel_title
        , v.channel_id
+       , v.video_no
        , v.updated
        , v.upload_date
       , u.updated latest_update
