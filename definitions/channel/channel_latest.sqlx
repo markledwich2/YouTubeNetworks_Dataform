@@ -84,7 +84,7 @@ with cv as (
                                        from channel
                                        where subs>0
                                      )*10000 as meets_sub_criteria
-       , cr.reviews_all>=1 and cr.lr is not null and cr.relevance>0.3 as meets_review_criteria
+       , cr.meets_review_criteria
        , iff(status_msg='Dead', d.death_recorded, null) death_recorded
   from latest c
          left join latest_names mc

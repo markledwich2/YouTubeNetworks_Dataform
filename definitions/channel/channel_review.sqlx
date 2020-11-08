@@ -182,6 +182,7 @@ with sam_reviews as (
        , r2.*
        , n.public_creator_notes
        , n.public_reviewer_notes
+       , r2.reviews_all>=1 and r2.lr is not null and r2.relevance>0.3 as meets_review_criteria
   from r2
          left join cl c on r2.channel_id=c.channel_id
          left join tags_agg_all ta on r2.channel_id=ta.channel_id
