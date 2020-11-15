@@ -3,29 +3,39 @@ config {
   tags:['init']
 }
 
-with raw as (
-  select metadata$filename as file
-       , split($1::string, '|') tags
-       , $2::string as channel_id
-       , $4::string as keywords
-       , $6::date as uploaded
-       , $7::string as video_title
-       , $8::string as video_id
-       , object_construct('offset', $9::int, 'caption', $13::string) captions
-       , $11::string as label
-       , $12::string as note
-  from @public.yt_data/import/narratives/trans.sw_4_2.kw_matches.all_info.2020-10-27.gen_20201113.all_snippets.labels.tsv.gz (file_format => tsv_header)
-  order by uploaded, captions:offset::int
+with q1 as (
+  select *
+       , split_part(label_raw, '_', 1) as support_raw
+       , decode(support_raw, 'unclear', 'other', support_raw) support
+       , array_to_string(array_slice(split(label_raw, '_'), 1, 10), '_') as supplement_raw
+       , split_part(label_raw, '_', 2)='heur' as heuristic
+       , count_if(not heuristic) over (partition by video_id, label_raw) manual_label_count
+  from video_narrative_raw
 )
-   , vid_narrative as (
+   , q2 as (
+  select video_id
+       , video_title
+       , channel_id
+       , note
+       , captions
+       , label_raw
+       , first_value(support) over (partition by video_id order by manual_label_count desc) support
+       , first_value(supplement_raw) over (partition by video_id order by manual_label_count desc) supplement
+  from q1
+)
+   , s as (
   select video_id
        , '2020 Election Fraud' narrative
-       , any_value(label) label -- assume we don't give different labels to different captions
+       , array_agg(distinct label_raw) labels
+       , any_value(support) support
+       , any_value(supplement) supplement
        , any_value(video_title) video_title
        , any_value(channel_id) channel_id
        , array_agg(distinct note) notes
        , array_agg(captions) captions
-  from raw
-  group by 1,2
+  from q2
+  group by 1, 2
 )
-select * from vid_narrative
+select *
+from s
+where support is not null and support not in ('none')
