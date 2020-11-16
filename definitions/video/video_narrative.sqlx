@@ -31,9 +31,9 @@ with q1 as (
        , decode(any_value(supplement)
     , 'second_opinion', null
     , 'reporting', null
-    , 'earlier', 'before'
-    , 'later', 'after'
-    , 'after_quote', 'after'
+    , 'earlier', null
+    , 'later', null
+    , 'after_quote', null
     , 'honest', null
     , 'on_screen', null
     , 'vs_claim', null
