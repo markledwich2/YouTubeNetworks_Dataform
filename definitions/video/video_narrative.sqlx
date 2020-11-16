@@ -28,7 +28,16 @@ with q1 as (
        , '2020 Election Fraud' narrative
        , array_agg(distinct label_raw) labels
        , any_value(support) support
-       , any_value(supplement) supplement
+       , decode(any_value(supplement)
+    , 'second_opinion', null
+    , 'reporting', null
+    , 'earlier', 'before'
+    , 'later', 'after'
+    , 'after_quote', 'after'
+    , 'honest', null
+    , 'on_screen', null
+    , 'vs_claim', null
+    , any_value(supplement)) supplement
        , any_value(video_title) video_title
        , any_value(channel_id) channel_id
        , array_agg(distinct note) notes
