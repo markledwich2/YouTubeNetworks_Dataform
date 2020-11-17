@@ -1,12 +1,16 @@
 config {
   type: "table",
-  tags:['init']
+  tags:['init'],
+  dependencies:['video_narrative_raw']
 }
 
 with q1 as (
   select *
        , split_part(label_raw, '_', 1) as support_raw
-       , decode(support_raw, 'unclear', 'other', support_raw) support
+       , decode(support_raw
+        , 'unclear', 'other'
+        , 'denia', 'denial'
+        , support_raw) support
        , array_to_string(array_slice(split(label_raw, '_'), 1, 10), '_') as supplement_raw
        , split_part(label_raw, '_', 2)='heur' as heuristic
        , count_if(not heuristic) over (partition by video_id, label_raw) manual_label_count
