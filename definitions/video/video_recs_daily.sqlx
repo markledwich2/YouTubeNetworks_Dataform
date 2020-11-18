@@ -1,0 +1,30 @@
+config {
+  type: "view"
+}
+
+  select from_video_id
+       , to_video_id
+       , r.updated::date as rec_date
+       , any_value(from_channel_id) as from_channel_id
+       , any_value(to_channel_id) as to_channel_id
+       , any_value(to_channel_title) as to_channel_title -- we often don't have the to channel in our dataset, so get title from recs
+       , any_value(to_video_title) as to_video_title
+
+       -- recs between the two videos
+       , count(1) as recs
+       -- recs for this video
+       , sum(recs) over (partition by from_video_id, rec_date) as from_video_recs
+       -- views * by the portion recs to the video compared to the total number of recs
+       , min(fd.views) * (recs / nullif(from_video_recs, 0)) as rec_view_portion
+       -- estimate for the times a rec is seen. Assume 10 is the average number of recs visible form a video. so the impressions is 10*the portion of recs
+       , rec_view_portion * 10 as impressions
+       , max(r.updated) as max_rec_updated
+
+  from rec r
+         left join video_stats_daily fd
+                   on fd.video_id = r.from_video_id and fd.date = r.updated::date
+         inner join channel_accepted fc on fc.channel_id = r.from_channel_id -- inner to filter only to accepted channels
+         -- incremental. update any video combo newer or in the latest month
+       --${ when(incremental(), `where rec_month >= (select max(rec_month) from ${self()})`) }
+
+  group by 1, 2, 3

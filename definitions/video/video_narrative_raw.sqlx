@@ -13,5 +13,5 @@ config {
        , object_construct('offset', $9::int, 'caption', $13::string) captions
        , $11::string as label_raw
        , $12::string as note
-  from @public.yt_data/import/narratives/trans.sw_4_2.kw_matches.all_info.2020-10-27.gen_20201116.all_snippets.labels.tsv.gz(file_format => tsv_header)
+  from @public.yt_data/import/narratives/trans.sw_4_2.kw_matches.all_info.2020-10-27.gen_20201117.all_snippets.labels.tsv.gz(file_format => tsv_header)
   order by uploaded, captions:offset::int
