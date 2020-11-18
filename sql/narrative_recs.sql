@@ -1,4 +1,7 @@
 with
+  narrative as ( -- todo support multiple narratives
+    select * from video_narrative where narrative = '2020 Election Fraud'
+  ),
   -- recs within the period
   period_recs as (
     select from_video_id
@@ -27,7 +30,7 @@ with
   from (
          select nf.support from_support, r.to_video_id, sum(recs) recs
          from period_recs r
-                left join video_narrative nf on nf.video_id=r.from_video_id
+                left join narrative nf on nf.video_id=r.from_video_id
          group by 1, 2
        )
     qualify dense_rank() over (partition by from_support order by recs desc)<100
@@ -37,7 +40,7 @@ with
   select video_id, channel_id, sum(views) views
   from video_stats_daily d
   where date between :from_date and :to_date
-    -- and channel_id='UCeY0bbntWzzVIaj2z3QigXg'
+    --and channel_id='UCeY0bbntWzzVIaj2z3QigXg'
     --and video_id='Tn8mN8MvrSI'
   group by 1, 2
 )
@@ -63,7 +66,7 @@ with
   from period_views d
          left join period_recs pr on pr.from_video_id=d.video_id
          left join default_channel_recs cr on pr.from_video_id is null and cr.from_channel_id=d.channel_id
-         left join video_narrative n on n.video_id=d.video_id
+         left join narrative n on n.video_id=d.video_id
          left join default_support_portions dr on cr.from_channel_id is null and dr.from_support=n.support
   group by d.video_id, pr.to_video_id, cr.to_video_id
 )
@@ -73,8 +76,8 @@ with
        , nt.support to_support
        , sum(impressions) impressions
   from video_recs r
-         left join video_narrative nf on nf.video_id=r.from_video_id
-         left join video_narrative nt on nt.video_id=r.to_video_id
+         left join narrative nf on nf.video_id=r.from_video_id
+         left join narrative nt on nt.video_id=r.to_video_id
        //inner join video_stats_daily d on d.video_id=r.from_video_id and d.date=r.rec_date
   where (nt.video_id is not null or nf.video_id is not null)
   group by 1, 2
@@ -82,7 +85,7 @@ with
    , test_narrative_views as (
   select n.support, sum(d.views) views
   from period_views d
-         inner join video_narrative n on n.video_id=d.video_id
+         inner join narrative n on n.video_id=d.video_id
   group by 1
 )
    , test_from_support as (
@@ -95,5 +98,5 @@ with
          left join test_narrative_views v on n.from_support=v.support
 )
 
-select *
+select '2020 Election Fraud' narrative, *
 from narrative_recs
