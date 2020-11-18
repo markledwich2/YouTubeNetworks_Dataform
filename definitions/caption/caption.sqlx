@@ -1,7 +1,7 @@
 config {
   type: "incremental",
   tags:["standard"],
-  dependencies:["caption_udf", "channel_latest", "channel_accepted"]
+  dependencies:["yt_udf", "channel_latest", "channel_accepted"]
 }
 
 with latest as (

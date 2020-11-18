@@ -1,0 +1,17 @@
+config {
+  type: "table",
+  tags: ['init']
+}
+
+  select metadata$filename as file
+       , split($1::string, '|') tags
+       , $2::string as channel_id
+       , $4::string as keywords
+       , $6::date as uploaded
+       , $7::string as video_title
+       , $8::string as video_id
+       , object_construct('offset', $9::int, 'caption', $13::string) captions
+       , $11::string as label_raw
+       , $12::string as note
+  from @public.yt_data/import/narratives/trans.sw_4_2.kw_matches.all_info.2020-10-27.gen_20201116.all_snippets.labels.tsv.gz(file_format => tsv_header)
+  order by uploaded, captions:offset::int

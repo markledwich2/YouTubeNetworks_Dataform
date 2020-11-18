@@ -1,4 +1,6 @@
-
+config {
+  tags: ['standard']
+}
 
 CREATE OR REPLACE FUNCTION public.timeSpanToSeconds(ts string)
   RETURNS double
@@ -15,4 +17,11 @@ var secSecs = +parts[2] // ss.ms just works because it is decimal
 // minutes are worth 60 seconds. Hours are worth 60 minutes.
 return daySecs + minSecs + secSecs
 
-';
+'
+---
+CREATE OR REPLACE FUNCTION public.arrayExclude(items array, exclude array)
+  RETURNS array
+  LANGUAGE JAVASCRIPT
+  AS '
+  return ITEMS == null ? null : ITEMS.filter(v => !EXCLUDE.includes(v))
+'
