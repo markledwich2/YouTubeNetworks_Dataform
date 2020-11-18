@@ -8,7 +8,7 @@ with
          , count(*) recs
     from rec r
            inner join channel_accepted fc on fc.channel_id=r.from_channel_id -- inner to filter only to accepted channels
-    where r.updated::date between :f_date and dateadd(day, 2, :tdate) -- find recs up to 2 days past period we use video's from
+    where r.updated::date between :from_date and dateadd(day, 7, :to_date) -- find recs up to 2 days past period we use video's from
     group by 1, 2
   )
   --portion of videos recommended from each channel in this period
@@ -36,7 +36,7 @@ with
    , period_views as (
   select video_id, channel_id, sum(views) views
   from video_stats_daily d
-  where date between :f_date and :tdate
+  where date between :from_date and :to_date
     -- and channel_id='UCeY0bbntWzzVIaj2z3QigXg'
     --and video_id='Tn8mN8MvrSI'
   group by 1, 2
