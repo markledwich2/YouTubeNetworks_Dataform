@@ -30,7 +30,7 @@ with
                      , update_no
                 from channel_review_sam_raw
               )
-         where confidence>=0.5
+         where confidence>=0.5 and tag not in ('StateFunded') --ignore poorly porforming tags
        )
   group by channel_id, update_no
 )

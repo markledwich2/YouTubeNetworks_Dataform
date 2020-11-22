@@ -23,5 +23,5 @@ CREATE OR REPLACE FUNCTION public.arrayExclude(items array, exclude array)
   RETURNS array
   LANGUAGE JAVASCRIPT
   AS '
-  return ITEMS == null ? null : ITEMS.filter(v => !EXCLUDE.includes(v))
+  return ITEMS ? ITEMS.filter(v => !EXCLUDE.includes(v)) : undefined
 '
