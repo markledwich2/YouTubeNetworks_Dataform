@@ -1,25 +1,47 @@
 config {
-  type: "view",
-  dependencies: ['video_extra'],
+  type: "table",
+  dependencies: ['video_extra', 'channel_latest', 'video_latest'],
   tags:['standard']
 }
 
- with video_errors as (
+with video_errors as (
   select e.video_id
        , e.channel_id
-       , e.channel_title
-       , e.video_title
        , e.error_type
        , e.copyright_holder
+       , e.updated error_updated
        , l.updated last_seen
-       , timediff(seconds, '0'::time, l.duration) duration_secs
-       , l.views video_views
-       , e.updated as error_updated
-       , l.upload_date
   from video_extra e
          inner join video_latest l on l.video_id=e.video_id
-         inner join channel_accepted c on e.channel_id=c.channel_id
   where error_type is not null
     and error_type not in ('Restricted','Not available in USA','Paywall','Device','Unknown')
 )
-select * from video_errors
+   , dead_channel_vids as (
+  select v.video_id
+       , v.channel_id
+       , 'Channel Removed' error_type
+       , null copyright_holder
+       , death_recorded error_updated
+       , v.updated last_seen
+  from video_latest v
+         inner join channel_latest c on c.channel_id=v.channel_id and death_recorded is not null
+)
+   , u as (
+  select *
+  from video_errors
+  union all
+  select *
+  from dead_channel_vids
+)
+, s as (
+  select u.*
+     , l.video_title
+     , c.channel_title
+     , timediff(seconds, '0'::time, l.duration) duration_secs
+     , l.views video_views
+     , l.upload_date
+from u
+       inner join video_latest l on l.video_id=u.video_id
+       inner join channel_accepted c on u.channel_id=c.channel_id
+)
+select * from s
