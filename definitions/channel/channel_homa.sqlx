@@ -1,0 +1,85 @@
+config {
+  type: "table"
+}
+
+
+with homa_raw as (
+  select $1::string category_homa
+       , replace($2::string, '’', '''') channel_title_raw
+  from @public.yt_data/import/HomaChannelCategories_2020_12_4.tsv (file_format => tsv_header)
+)
+   , homa as (
+  select *
+
+  from (
+         select category_homa
+              , decode(channel_title_raw,
+                       'ItsAGundam', 'It''sAGundam'
+           , 'Tomorrow''sWorld Viewpoint', 'Tomorrow''s World Viewpoint'
+           , 'AgatanFoundation', 'Agatan Foundation'
+           , 'ConservativeTribune', 'Conservative Tribune'
+           , 'DECLASSIFIED - The Epoch Times', 'Declassified with Gina Shakespeare'
+           , 'DailyCallerVideo', 'DailyCaller'
+           , 'Dinesh DSouza', 'Dinesh D''Souza'
+           , 'Epoch News The Epoch Times', 'The Epoch Times'
+           , 'GirlDefined', 'Girl Defined'
+           , 'GlennBeck', 'Glenn Beck'
+           , 'Hasan Piker', 'HasanAbi'
+           , 'HooverInstitution', 'Hoover Institution'
+           , 'Hugo and Jake', 'Hannah and Jake'
+           , 'InstituteForJustice', 'Institute For Justice'
+           , 'Jean-Francois Gari´epy', 'Jean-Francois Gariépy'
+           , 'Jean-Fran¸cois Gari´epy', 'Jean-Francois Gariépy'
+           , 'Jordan B PetersonClips', 'Jordan B Peterson Clips'
+           , 'JordanPetersonVideos', 'Jordan Peterson Videos'
+           , 'MarkDice', 'Mark Dice'
+           , 'MikeCernovich', 'Mike Cernovich'
+           , 'MillennialWoes', 'Millennial Woes'
+           , 'MR.OBVIOUS', 'MR. OBVIOUS'
+           , 'Andrew Yang for President 2020', 'Andrew Yang'
+           , 'Andy Warski', 'Andywarski'
+           , 'American Thought Leaders - TheEpoch Times', 'American Thought Leaders - The Epoch Times'
+           , 'AynRandInstitute', 'Ayn Rand Institute'
+           , 'Ben ShapiroThug Life', 'Ben Shapiro Thug Life'
+           , 'BigCatKaylaLivestreams', 'BigCatKayla Livestreams'
+           , 'Brittany Pettibone', 'Brittany Sellner'
+           , 'BrittanyVenti', 'Brittany Venti'
+           , 'Desi-Rae Thinking', 'Just Thinking Out Loud'
+           , 'wired magazine', 'WIRED'
+           , 'ybrook', 'Yaron Brook'
+           , 'theturningpointusa', 'Turning Point USA'
+           , 'PragerUniversity', 'PragerU'
+           , 'Larry Elder Show - The Epoch Times', 'Larry Elder with Epoch Times'
+           , 'Dont Walk Run! Productions', 'Don''t Walk, Run! Productions'
+           , 'Cuck Philosophy', 'Jonas Čeika - CCK Philosophy'
+           , 'Sinatra-Says', 'Sinatra_Says'
+           , 'The Academic Agent', 'Academic Agent'
+           , 'YAFTV', 'Young America''s Foundation'
+           , 'democracy now', 'Democracy Now!'
+           , 'huffington post (huffpost)', 'HuffPost'
+           , 'people magazine', 'People'
+           , 'The Asian Capitalists', 'A Dormant Dynasty'
+           , 'Patriot Act', 'Hasan Minhaj'
+           , 'No Bullshit 2', 'No B.S. News'
+           , channel_title_raw) channel_title
+         from homa_raw
+       )
+    qualify row_number() over (partition by category_homa, channel_title order by 1)=1
+)
+   , chans as (
+  select *
+       , row_number()
+      over (partition by lower(replace(channel_title, ' ', '')) order by meets_review_criteria desc nulls last, channel_views desc nulls last) row_no
+  from channel_latest
+    qualify row_no=1
+)
+   , s as (
+  select h.*
+       , c.channel_id
+       , c.tags
+  from homa h
+         left join chans c on lower(replace(c.channel_title, ' ', ''))=lower(replace(h.channel_title, ' ', ''))
+  order by channel_title
+)
+select *
+from s

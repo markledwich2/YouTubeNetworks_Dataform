@@ -86,6 +86,12 @@ with cv as (
                                      )*10000 as meets_sub_criteria
        , cr.meets_review_criteria
        , iff(status_msg='Dead', d.death_recorded, null) death_recorded
+       , case
+           when lr='C' then 'C'
+           when lr='R' then iff(arrays_overlap(array_construct('WhiteIdentitarian', 'QAnon'), tags)
+                                  or (array_contains('Conspiracy'::variant, tags) and array_contains('PartisanRight'::variant, tags)), 'FR', 'R')
+           when lr='L' then iff(arrays_overlap(array_construct('Socialist'), tags), 'FL', 'L')
+    end homa_category_proposed
   from latest c
          left join latest_names mc
                    on c.main_channel_id=mc.channel_id
