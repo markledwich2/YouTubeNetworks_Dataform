@@ -5,7 +5,7 @@ config {
 }
 
 with r1 as (
-  select v: account::string as account
+  select v:account::string as account
        , v:channel::string as from_channel_title
        , v:channel_id::string as from_channel_id
        , v:video_id::string as from_video_id
@@ -24,7 +24,8 @@ with r1 as (
    ${ when(incremental(), `and updated > (select max(updated) from ${self()})`) }
 )
    , r2 as (
-  select r1.account
+  select 
+         decode(r1.account, 'Mainstream News', 'MainstreamNews', r1.account) account
        , from_channel_title
        , from_channel_id
        , from_video_id
