@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  dependencies:['video_stats_daily', 'channel_accepted']
 }
 
   select from_video_id

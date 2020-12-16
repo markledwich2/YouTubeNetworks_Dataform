@@ -1,0 +1,55 @@
+config {
+  type: "table",
+  tags:['standard', 'us']
+}
+
+with account_totals as (
+  select account, count(*) as account_recs
+  from us_rec
+  group by account)
+
+   , total_views as (
+  select sum(views) views
+  from video_stats_monthly v
+  where month>=:from_month
+)
+   , tag_views as (
+  select tag, views/(select views from total_views) views_pct
+  from (
+         select t.value::string as tag, sum(views) views
+         from video_stats_monthly v
+                left join channel_latest c on v.channel_id=c.channel_id
+            , table ( flatten(c.tags) ) t
+         where month>=:from_month
+         group by 1
+       )
+)
+   , r1 as (
+  select r.*
+       , recs/t.account_recs recs_pct_account
+  from (
+         select r.account, tt.value::string as to_tag, count(*) as recs
+         from us_rec r
+                left join channel_latest tc on r.to_channel_id=tc.channel_id
+            , table ( flatten(tc.tags) ) tt
+         group by 1, 2
+       ) r
+         left join account_totals t on r.account=t.account
+         left join account_totals f on f.account='Fresh'
+  where to_tag not in ('Black','Politician','MissingLinkMedia','Educational','LGBT','OrganizedReligion')
+)
+   , r2 as (
+  select r.*
+       , f.recs_pct_account recs_pct_fresh
+       , r.recs_pct_account-f.recs_pct_account as diff_vs_fresh_pp
+       , diff_vs_fresh_pp/f.recs_pct_account as diff_vs_fresh_pct
+       , r.recs_pct_account-t.views_pct rec_vs_views_pp
+       , rec_vs_views_pp/t.views_pct rec_vs_views_pct
+  from r1 r
+         left join r1 as f on f.to_tag=r.to_tag and f.account='Fresh'
+         left join tag_views t on f.to_tag=t.tag
+  where r.account not in ('Fresh','Black')
+)
+select *
+from r2
+order by account, rec_vs_views_pp desc
