@@ -11,7 +11,7 @@ with account_totals as (
    , total_views as (
   select sum(views) views
   from video_stats_monthly v
-  where month>=:from_month
+  --where month>=:from_month
 )
    , tag_views as (
   select tag, views/(select views from total_views) views_pct
@@ -20,7 +20,7 @@ with account_totals as (
          from video_stats_monthly v
                 left join channel_latest c on v.channel_id=c.channel_id
             , table ( flatten(c.tags) ) t
-         where month>=:from_month
+         --where month>=:from_month
          group by 1
        )
 )
