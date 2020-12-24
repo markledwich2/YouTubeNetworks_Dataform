@@ -14,20 +14,21 @@ with v2_flat as (
        , v:ToVideoTitle::string as to_video_title
        , v:Source::string as source
        , v:Rank::number as rank
-       , iff(
-      v:Updated like '0001-01-01%',
-      '2019-11-02 13:50:00',
-      v:Updated
-    ) :: timestamp_ntz as updated
+       , iff(v:Updated like '0001-01-01%', '2019-11-02 13:50:00', v:Updated) :: timestamp_ntz as updated
   from rec_stage
+)
+   , channel_title_lookup as (
+     select channel_id, channel_title
+     from channel_latest
+     qualify row_number() over (partition by channel_title order by channel_video_views desc) =1
 )
    , v2_lookup as (
   select from_channel_id
        , fc.channel_title as from_channel_title
        , from_video_id
        , from_video_title
-       -- with ol methods we didn't get the channel id, so fall back to looking up channels in out dataset
-       , coalesce(to_channel_id, tc_title.channel_id, tc_vid.channel_id) as to_channel_id
+       -- with ol methods we didn't get the channel id, so fall back to looking up channels in our dataset
+       , coalesce(to_channel_id, tc_vid.channel_id, tc_title.channel_id) as to_channel_id
        , to_channel_title
        , to_video_id
        , to_video_title
@@ -39,7 +40,7 @@ with v2_flat as (
   from v2_flat r
          left join channel_latest fc on r.from_channel_id=fc.channel_id
          left join video_latest tv on r.to_video_id=tv.video_id
-         left join channel_latest tc_title on r.to_channel_title=tc_title.channel_title
+         left join channel_title_lookup tc_title on r.to_channel_title=tc_title.channel_title
          left join channel_latest tc_vid on tv.channel_id=tc_vid.channel_id
 )
    , u as (
@@ -61,21 +62,6 @@ with v2_flat as (
        , null as account
   from dbv1_rec
   where rank<=20
-  /*union all
-  select from_channel_id
-       , from_channel_title
-       , from_video_id
-       , from_video_title
-       , to_channel_id
-       , to_channel_title
-       , to_video_id
-       , to_video_title
-       , 'UserScrape'::string as source
-       , rank
-       , updated
-       , 'v2'::string as collection_version
-       , account
-  from us_rec*/
 )
 select *, date_trunc('day', updated)::date as updated_day
 from u
