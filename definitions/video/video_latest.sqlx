@@ -5,11 +5,17 @@ config {
     dependencies: ["video"]
 }
 
-with latest as (
-  select *
-  from video
-${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
-    qualify row_number() over (partition by video_id order by updated desc)=1
+with
+ video_stats as (
+   select video_id, min(updated) updated_first, max(updated) updated_last
+   from video group by video_id
+ )
+ , latest as (
+  select v.*, vs.updated_first
+  from video_stats vs
+    inner join video v on vs.video_id = v.video_id and v.updated = updated_last
+    ${ when(incremental(), `WHERE v.updated > (select max(updated) from ${self()})`)}
+    qualify row_number() over (partition by v.video_id order by updated desc)=1
 )
 select *
 from latest
