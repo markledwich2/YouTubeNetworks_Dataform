@@ -1,0 +1,8 @@
+config {
+  type: "view"
+}
+
+select $1::string video_id
+      , $2::string label
+      , $3::date expires
+from @public.yt_data/import/us_explicit_tests.tsv (file_format => tsv_header)

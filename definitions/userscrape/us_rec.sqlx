@@ -1,7 +1,7 @@
 config {
   type: "incremental",
   tags:["standard", "us"],
-  dependencies:[ ]
+  dependencies:[ "channel_latest", "video_latest" ]
 }
 
 with r1 as (
@@ -23,8 +23,13 @@ with r1 as (
   where updated>'2020-09-05'
    ${ when(incremental(), `and updated > (select max(updated) from ${self()})`) }
 )
+   , channel_by_title as (
+     select channel_title, channel_id
+     from channel_latest
+     qualify row_number() over (partition by channel_title order by greatest(channel_views, channel_video_views) desc) = 1
+)
    , r2 as (
-  select 
+  select
          decode(r1.account, 'Mainstream News', 'MainstreamNews', r1.account) account
        , from_channel_title
        , from_channel_id
@@ -37,9 +42,10 @@ with r1 as (
        , personalized
        , rank
        , to_channel_title
-       , coalesce(to_channel_id, tc.channel_id) as to_channel_id
+       , coalesce(to_channel_id, tv.channel_id, tc.channel_id) as to_channel_id
   from r1
-         left join channel_latest tc on tc.channel_title=r1.to_channel_title
+         left join channel_by_title tc on tc.channel_title=r1.to_channel_title
+         left join video_latest tv on tv.video_id = r1.to_video_id
 )
 select *
 from r2
