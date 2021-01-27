@@ -4,13 +4,12 @@ config {
   dependencies:[ ]
 }
 
-select v:account::string as account
+select decode(v:account::string, 'MainstreamNews', 'Mainstream News', v:account::string) as account
      , v:trial::string as trial_id
      , f.value:title::string as video_title
-     , f.value:video_id::string as video_id
+     , split_part(f.value:video_id::string, '&', 0) as video_id
      , v:updated::timestamp_ntz updated
 from us_feed_stage
    , lateral flatten(input => v:feed_videos::array, outer => true) f
-   where updated>'2020-09-05'
-
+where updated>'2020-09-05'
 ${ when(incremental(), `and trial_id > (SELECT MAX(trial_id) FROM ${self()})`) }
