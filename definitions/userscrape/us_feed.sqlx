@@ -11,5 +11,6 @@ select v:account::string as account
      , v:updated::timestamp_ntz updated
 from us_feed_stage
    , lateral flatten(input => v:feed_videos::array, outer => true) f
+   where updated>'2020-09-05'
 
-${ when(incremental(), `WHERE trial_id > (SELECT MAX(trial_id) FROM ${self()})`) }
+${ when(incremental(), `and trial_id > (SELECT MAX(trial_id) FROM ${self()})`) }
