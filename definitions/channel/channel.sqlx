@@ -6,27 +6,32 @@ config {
 }
 
 with cstage as (
-  select v:ChannelId::string as channel_id
-       , v:ChannelTitle::string as channel_title
-       , v:MainChannelId::string as main_channel_id
-       , v:LogoUrl::string as logo_url
-       , v:Subs::int as subs
-       , v:ChannelViews::int as channel_views
-       , v:Country::string as country
-       , v:Updated::timestamp_ntz as updated
-       , v:Status::string as status_msg
-       , v:"Subscriptions"::array as subscriptions
-       , v:Keywords::string as keywords
-       , v:DefaultLanguage::string as default_langauge
-       , v:FeaturedChannelIds::array as featured_channels
-       , v:Description::string as description
-  from channel_stage
+select v:ChannelId::string channel_id
+     , coalesce(v:Platform::string, 'YouTube') platform
+     , v:SourceId::string source_id
+     , v:ChannelTitle::string channel_title
+     , v:MainChannelId::string main_channel_id
+     , v:LogoUrl::string logo_url
+     , v:Subs::int subs
+     , v:ChannelViews::int channel_views
+     , v:Country::string country
+     , v:Updated::timestamp_ntz updated
+     , v:Status::string status_msg
+     , v:"Subscriptions"::array subscriptions
+     , v:Keywords::string keywords
+     , v:DefaultLanguage::string default_langauge
+     , v:FeaturedChannelIds::array featured_channels
+     , v:Description::string description
+     , v:DiscoverSource discover_source
+from channel_stage
 )
    , c1 as (
   select *, 'recfluence' as source
   from cstage as cs
   union all
   (select channel_id
+      , 'YouTube'
+      , null
         , channel_title
         , null as main_channel_id
         , null as logo_url
@@ -40,6 +45,7 @@ with cstage as (
         , null as default_langauge
         , null as featured_channels
         , null as description
+        , null as discover_source
         , 'sam_export' as source
    from channel_sam_import
    where not exists(select * from cstage where cstage.channel_id=channel_sam_import.channel_id))

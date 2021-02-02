@@ -5,14 +5,15 @@ config {
 }
 
 with channel_latest_update as (
-  select channel_id
-       , video_id
-       , upload_date
-       , updated
+  select v.channel_id
+       , v.video_id
+       , vl.upload_date
+       , v.updated
   from video v
+  inner join video_latest vl on v.video_id = vl.video_id
   where exists(select * from channel_accepted c where c.channel_id = v.channel_id)
   --and channel_id = 'UCkv4SxLREmIKoUYzabJX4dQ'
-  qualify row_number() over (partition by channel_id order by updated::date desc, upload_date)=1
+  qualify row_number() over (partition by v.channel_id order by v.updated::date desc, vl.upload_date)=1
 )
    , video_latest_no as (
   select *, row_number() over (partition by channel_id order by upload_date desc) video_no

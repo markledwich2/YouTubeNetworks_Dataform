@@ -1,0 +1,32 @@
+config {
+  type: "view",
+  dependencies: ['video_latest', 'channel_latest', 'yt_udf']
+}
+
+with v as (
+  select v.description, v.channel_id
+  from video_latest v
+         left join channel_latest c on v.channel_id=c.channel_id
+  where v.description like '%bitchute.com%'
+)
+   , u as (
+  select *
+  from v
+  union all
+  select description, channel_id
+  from channel_latest
+  where description like '%bitchute.com%'
+)
+   , s2 as (
+  select channel_id as yt_channel_id
+                , coalesce(m.value:type::string, 'channel') type
+                , coalesce(m.value:id, m.value:name)::string bc_channel_id
+                , count(*) references
+  from u
+     , table ( flatten(
+      regexMatchAll(description, 'bitchute.com/(?:(?<type>channel|video|profile|search|accounts/\\w|accounts)/(?<id>[\\w_-]*)/|(?:(?<name>[\\w_-]*))/\\s)', 'i')
+    , outer => true) ) m
+    where bc_channel_id <> ''
+    group by 1,2,3
+)
+select * from s2

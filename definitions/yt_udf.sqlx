@@ -25,3 +25,20 @@ CREATE OR REPLACE FUNCTION public.arrayExclude(items array, exclude array)
   AS '
   return ITEMS ? ITEMS.filter(v => !EXCLUDE.includes(v)) : undefined
 '
+
+---
+create or replace function public.regexMatchAll(input string,pattern string,flags string)
+  returns array
+  language javascript
+as
+'function regexMatchAll(input, pattern, flags) {
+ let re = new RegExp(pattern, flags ? flags + "g" : "g")
+ let res = []
+ let m;
+ while (m = re.exec(input))
+   res.push(m.groups)
+ return res
+}
+
+return regexMatchAll(INPUT, PATTERN, FLAGS)
+'

@@ -1,56 +1,14 @@
 config {
   type: "table",
   tags: ["incremental"],
-  dependencies: ["dbv1_video"]
+  dependencies: ["dbv1_video", "video_stage_view"]
 }
 
-with v as (
-  select v:VideoId::string as video_id
-       , v:Title::string as video_title
-       , v:ChannelId::string as channel_id
-       , v:ChannelTitle::string as channel_title
-
-       -- YT returns an upload date that doesn't make sense (usually newer than it was uploaded). 
-       -- Fall back to added_date when they disagree as it is more reliable (we started collecting this in 2020-09)
-       , iff(v:AddedDate::date is not null and abs(datediff(d, v:UploadDate::timestamp_ntz, v:AddedDate::date)) > 1,
-          v:AddedDate::date, v:UploadDate::timestamp_ntz) upload_date
-          
-       , v:Statistics:ViewCount::int as views
-       , v:Statistics:AverageRating::float as avg_rating
-       , v:Statistics:LikeCount::int as likes
-       , v:Statistics:DislikeCount::int as dislikes
-       , v:Description::string as description
-       , try_to_time(v:Duration::string) as duration
-       , v:Keywords::array as keywords
-       , iff(v:Updated::timestamp_ntz='0001-01-01'::timestamp_ntz, '2019-11-05'::timestamp_ntz,
-             v:Updated::timestamp_ntz) as updated
-       , 'v2'::string as collection_version
-  from video_stage
-)
-   , v_dbv1 as (
-  select video_id
-       , video_title
-       , channel_id
-       , channel_title
-       , upload_date
-       , views
-       , null::float as avg_rating
-       , likes
-       , dislikes
-       , description
-       , null::time as duration
-       , null::array as keywords
-       , updated
-       , 'v1'::string as collection_version
-  from dbv1_video v
-  where video_id is not null
-)
-   , u as (
-  select *
-  from v
-  union all
-  (select * from v_dbv1)
-)
-select v.*
-from v
+select video_id
+     , platform
+     , video_title
+     , channel_id
+     , views
+     , updated
+from video_stage_view
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }

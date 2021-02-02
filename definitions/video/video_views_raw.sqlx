@@ -4,20 +4,25 @@ config {
   dependencies: ['video'],
 }
 
-  select channel_id
-       , video_id
-       , views-coalesce(lag(views) over (partition by video_id order by updated), 0) delta_views
-       , views total_views
+with s as (
+  select v.channel_id
+       , v.video_id
+       , v.views-coalesce(lag(v.views) over (partition by v.video_id order by v.updated), 0) delta_views
+       , v.views total_views
        -- from date is the previous updated date, of if that is missing the upload_date
        -- sometimes the upload date is more recent than uploads (e.g. live stream scheduled in advance 21HQL59EsQY)
-       , lag(updated) over (partition by video_id order by updated) prev_date
-       , min(upload_date) over (partition by video_id order by updated) first_upload_date
-       , updated
+       , lag(v.updated) over (partition by v.video_id order by v.updated) prev_date
+       , min(upload_date) over (partition by v.video_id order by vl.updated) first_upload_date
+       , v.updated
   from video v
- where exists(select channel_id from channel_accepted c where v.channel_id=c.channel_id)
-
+         inner join video_latest vl on v.video_id=vl.video_id
+  where exists(select * from channel_accepted_process c where v.channel_id=c.channel_id)
+   -- and v.channel_id='BitChute|nLPcg68RnP97'
+)
+select * from s
+${ when(incremental(), `where updated > (select max(updated) from ${self()})`) }
 -- qualify instead of where to ensure prev_date is found prior to filtering
-${ when(incremental(), `qualify updated > (select max(updated) from ${self()})`) }
+
 
 post_operations {
   alter table ${self()} cluster by (channel_id, video_id)

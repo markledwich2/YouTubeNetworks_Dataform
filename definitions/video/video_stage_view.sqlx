@@ -1,0 +1,27 @@
+config {
+  type: "view",
+  dependencies:[]
+}
+
+ select v:VideoId::string as video_id
+        , coalesce(v:Platform::string, 'YouTube') as platform
+       , v:SourceId::string as source_id
+       , v:Title::string as video_title
+       , v:ChannelId::string as channel_id
+       , v:ChannelTitle::string as channel_title
+
+       -- YT returns an upload date that doesn't make sense (usually newer than it was uploaded).
+       -- Fall back to added_date when they disagree as it is more reliable (we started collecting this in 2020-09)
+       , iff(v:AddedDate::date is not null and abs(datediff(d, v:UploadDate::timestamp_ntz, v:AddedDate::date)) > 1, v:AddedDate::date, v:UploadDate::timestamp_ntz) upload_date
+
+       , v:Statistics:ViewCount::int as views
+       , v:Statistics:AverageRating::float as avg_rating
+       , v:Statistics:LikeCount::int as likes
+       , v:Statistics:DislikeCount::int as dislikes
+       , v:Description::string as description
+       , try_to_time(v:Duration::string) as duration
+       , v:Keywords::array as keywords
+       , iff(v:Updated::timestamp_ntz='0001-01-01'::timestamp_ntz, '2019-11-05'::timestamp_ntz, v:Updated::timestamp_ntz) as updated
+  from video_stage
+
+  

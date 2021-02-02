@@ -2,7 +2,7 @@ config {
     type:'incremental',
     uniqueKey: ['video_id', 'date'],
     tags: ['standard'],
-    dependencies: ['video', 'channel_accepted', 'video_latest', 'date', 'video_watch_time', 'video_views_raw']
+    dependencies: ['video', 'channel_accepted_process', 'video_latest', 'date', 'video_watch_time', 'video_views_raw']
 }
 
 -- video_stats_daily spreads video views from our patchy as-at-time records into an estimate for views on each day
@@ -12,7 +12,7 @@ with delta as (
        , coalesce(prev_date, least(first_upload_date, updated), first_upload_date, updated)::date as from_date
        , greatest(1.0, datediff(days, from_date, to_date))::int as days --be careful. needs to match the v1 left join. e.g. if days rows match with delta, this should also be 2
   from video_views_raw v
-  where exists(select channel_id from channel_accepted c where v.channel_id=c.channel_id)
+  where exists(select channel_id from channel_accepted_process c where v.channel_id=c.channel_id)
   --and to_date > '2019-01-01'
    -- and video_id = 'eMaKxR2Blr4' -- alice down the rabbit hole
         --'Z4SXxxUnq0U' -- fox news form aug
