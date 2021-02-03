@@ -1,6 +1,7 @@
 config {
   type: "view",
-  dependencies: ['video_latest', 'channel_latest', 'yt_udf']
+  dependencies: ['video_latest', 'channel_latest', 'yt_udf'],
+  tags: ['standard']
 }
 
 with v as (

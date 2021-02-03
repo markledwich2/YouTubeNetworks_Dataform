@@ -1,6 +1,6 @@
 config {
-  type: "table",
-  tags: ["incremental"],
+  type: "incremental",
+  tags: ["standard"],
   dependencies: ["dbv1_video", "video_stage_view"]
 }
 
