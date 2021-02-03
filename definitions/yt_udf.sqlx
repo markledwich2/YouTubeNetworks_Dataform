@@ -42,3 +42,16 @@ as
 
 return regexMatchAll(INPUT, PATTERN, FLAGS)
 '
+
+
+---
+create or replace function public.regexMatch(input string,pattern string,flags string)
+  returns object 
+  language javascript
+as
+'function regexMatch(input, pattern, flags) {
+ var res = new RegExp(pattern, flags).exec(input)
+ return res ? res.groups : {};
+}
+return regexMatch(INPUT, PATTERN, FLAGS)
+'

@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags: ["standard"],
+  tags: ["standard", "core"],
   dependencies: ['video_latest', 'channel_review', 'channel_sam_import' ],
   uniqueKey:['channel_id', 'updated']
 }

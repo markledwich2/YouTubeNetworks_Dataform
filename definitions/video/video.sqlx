@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags: ["standard"],
+  tags: ["standard", "core"],
   dependencies: ["video_stage_view"]
 }
 
