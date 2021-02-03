@@ -4,7 +4,7 @@ config {
 }
 
  select v:VideoId::string as video_id
-        , coalesce(v:Platform::string, 'YouTube') as platform
+        ,v:Platform::string as platform
        , v:SourceId::string as source_id
        , v:Title::string as video_title
        , v:ChannelId::string as channel_id

@@ -1,14 +1,12 @@
 config {
   type: "incremental",
   tags: ["standard"],
-  dependencies: ["dbv1_video", "video_stage_view"]
+  dependencies: ["video_stage_view"]
 }
 
 select video_id
-     , platform
-     , video_title
      , channel_id
      , views
      , updated
-from video_stage_view
+from video_stage_view v
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }

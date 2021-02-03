@@ -8,18 +8,18 @@ config {
 with
  video_stats as (
    select video_id, min(updated) updated_first, max(updated) updated_last
-   from video group by video_id
+   from video
+   --where video_id = 'BitChute|dGKHhRjeVGk'
+   group by video_id
  )
  , latest as (
-  select v.*, vs.updated_first
-  from video_stats vs
-    inner join video_stage_view v on vs.video_id = v.video_id and v.updated = updated_last
-    ${ when(incremental(), `WHERE v.updated > (select max(updated) from ${self()})`)}
+  select v.*
+  from video_stage_view v
+    --left join video_stats vs on vs.video_id = v.video_id and v.updated = updated_last
+    ${ when(incremental(), `where v.updated > (select max(updated) from ${self()})`)}
     qualify row_number() over (partition by v.video_id order by updated desc)=1
 )
-select *
-from latest
+select v.*, vs.updated_first
+from latest v
+left join video_stats vs on vs.video_id = v.video_id and v.updated = updated_last
 
-post_operations {
-  alter table ${self()} cluster by (channel_id, video_id)
-}
