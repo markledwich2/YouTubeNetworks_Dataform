@@ -1,0 +1,22 @@
+config {
+  type: "view"
+}
+
+  select l.channel_id channel_id_from
+       , url
+       -- we use the canonical url for rumble channel_id, so match on that
+       , regexmatch(url,
+          decode(d.platform,
+                 'Rumble', 'https?://(?:www\\.)?rumble\\.com/(?:(?<path>c|user|account|register|embed)/)?(?<id>[\\w-]*)/?$',
+                 'BitChute', 'https?://(?:www\\.)?bitchute\\.com/(?:(?<path>channel|video|profile|search|hashtag|accounts/\\w|accounts)/)?(?<id>[\\w-]*)/?$')
+    , 'i') p
+       , p:id::string channel_id_to
+       , d.platform platform_to
+       , count(*) links
+  from links l
+         join domain d on l.domain=d.domain
+  where (p: path is null or p:path='channel')
+    and channel_id_to is not null
+    
+  group by 1, 2, 3, 4, 5
+  order by links desc

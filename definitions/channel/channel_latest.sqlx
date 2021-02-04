@@ -56,6 +56,7 @@ with cv as (
        , coalesce(cr.reviews_all, 0) as reviews_all
        , coalesce(cr.reviews_algo, 0) as reviews_algo
        , reviews_all-reviews_algo as reviews_human
+       -- ideology si deprecated in favour of tags, but we still depend on it in places.
        , case -- evaluated top to bottom. Start with most stand-out/defining tags
            when array_contains('WhiteIdentitarian'::variant, tags) then 'White Identitarian'
            when array_contains('MRA'::variant, tags) then 'MRA'
