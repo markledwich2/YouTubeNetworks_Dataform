@@ -17,7 +17,7 @@ with clg as (
        , sum(l.links) links
   from channel_link l
          left join channel_latest fc on l.channel_id_from=fc.channel_id
-         left join channel_latest tc on (channel_id_to=tc.source_id or channel_id_to=tc.discover_source:DestId) and tc.platform=l.platform_to
+         left join channel_latest tc on (link_id=tc.source_id or link_id=tc.discover_source:DestId) and tc.platform=l.platform_to
   where tc.channel_title is not null
     and fc.reviews_all>0
     and platform_to in ('Rumble','BitChute')

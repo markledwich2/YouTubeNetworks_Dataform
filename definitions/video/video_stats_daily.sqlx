@@ -7,12 +7,14 @@ config {
 
 -- video_stats_daily spreads video views from our patchy as-at-time records into an estimate for views on each day
 with delta as (
-  select *
-       , updated::date as to_date
-       , coalesce(prev_date, least(first_upload_date, updated), first_upload_date, updated)::date as from_date
+  select v.*
+       , v.updated::date as to_date
+       , coalesce(prev_date, least(first_upload_date, v.updated), first_upload_date, v.updated)::date as from_date
        , greatest(1.0, datediff(days, from_date, to_date))::int as days --be careful. needs to match the v1 left join. e.g. if days rows match with delta, this should also be 2
   from video_views_raw v
+  --join channel_latest cl on v.channel_id = cl.channel_id
   where exists(select channel_id from channel_accepted_process c where v.channel_id=c.channel_id)
+  --and cl.platform = 'Rumble'
   --and to_date > '2019-01-01'
    -- and video_id = 'eMaKxR2Blr4' -- alice down the rabbit hole
         --'Z4SXxxUnq0U' -- fox news form aug
