@@ -8,9 +8,10 @@ with vd_filtered as (
   select d.*
        --, sum(iff(date between anchor and dateadd(day,  -2, anchor), views, 0)) d2
   from video_stats_daily d
+  join channel_accepted ca on d.channel_id = ca.channel_id
   where date>='2019-01-01'
     and not exists(select * from video_excluded v where v.video_id=d.video_id)
-    and exists(select * from channel_accepted c where c.channel_id=d.channel_id)
+    and ca.platform = 'YouTube'
   --where channel_id in ('UCzQUP1qoWDoEbmsQxvdjxgQ','UCupvZG-5ko_eiXAupbDfxWw')
 )
    , relative_ranges as (

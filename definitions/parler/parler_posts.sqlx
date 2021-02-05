@@ -1,0 +1,27 @@
+config {
+  type: "table"
+}
+
+select v:bodywithurls::string body
+     , v:id::string id
+     , v:urls::array urls
+     , v:hashtags::array hashtags
+     , v:post::string post
+     , v:parent::string parent
+     , to_timestamp_ntz(v:createdAt::string, 'YYYYMMDDHHMISS') created_at
+     , v:username::string username
+     , v:creator::string creator
+     , v:verified::boolean verified
+     , v:reposts::int reposts
+     , v:upvotes::int upvotes
+     , try_to_number(v:downvotes::string) downvotes
+     , v:score::int score
+     , v:sensitive::boolean sensitive
+     , v:impressions::int impressions
+     , v:datatype::string datatype
+     , v:controversy::int controversy
+     , v:depth::int depth
+     , v:commentDepth::int comment_depth
+     , v:shareLink::string share_link
+, v
+from parler_post_stage
