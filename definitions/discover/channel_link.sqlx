@@ -1,0 +1,48 @@
+config {
+  type: "view",
+  dependencies:['links']
+}
+
+
+with clink as (
+  select l.channel_id channel_id_from
+       , url
+       -- we use the canonical url for rumble channel_id, so match on that
+       , regexmatch(url,
+                    decode(d.platform,
+                           'Rumble', 'https?://(?:www\\.)?rumble\\.com/(?:(?<path>c|user|account|register|embed)/)?(?<id>[\\w-]*)/?$',
+                           'BitChute',
+                           'https?://(?:www\\.)?bitchute\\.com/(?:(?<path>channel|video|profile|search|hashtag|accounts/\\w|accounts)/)?(?<id>[\\w-]*)/?$')
+    , 'i') p
+       , p:id::string link_id
+       , p: path::string path_raw
+       , case
+           when platform='Rumble' then (
+             case when path_raw='c' then 'channel' when path_raw is null then iff(link_id regexp $$v\w{5}-.*$$, 'video', 'channel') else path_raw end
+             )
+           when path_raw='channel' then 'channel'
+           when path_raw is null then 'channel'
+           else path_raw
+    end link_type
+       , any_value(d.platform) platform_to
+       , count(*) links
+  from links l
+         join domain d on l.domain=d.domain
+  where link_id is not null
+    and link_type='channel'
+  group by 1, 2, 3, 4, 5, 6
+  order by links desc
+)
+select l.url
+     , l.link_type
+     , l.link_id
+     , l.channel_id_from
+     , tc.channel_id channel_id_to
+     , fc.platform platform_from
+     , l.platform_to
+    , tc.status_msg status_msg_to
+    , links
+from clink l
+       join channel_latest fc on fc.channel_id=l.channel_id_from
+    -- find to channels based on the source id, or pre-discovered DestId
+       left join channel_latest tc on (link_id=tc.source_id or link_id=tc.discover_source:DestId) and tc.platform=platform_to

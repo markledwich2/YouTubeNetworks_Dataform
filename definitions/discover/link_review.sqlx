@@ -1,0 +1,75 @@
+config {
+  type: "table",
+  dependencies: ['channel_link', 'channel_latest']
+}
+
+
+with clg as (
+  select l.channel_id_from
+       , tc.channel_id channel_id_to
+       , min(fc.platform) platform_from
+       , min(l.platform_to) platform_to
+       , min(fc.channel_title) channel_title_from
+       , min(tc.channel_title) channel_title_to
+       , any_value(fc.tags) tags_from
+       , any_value(fc.relevance) relevance_from
+       , any_value(fc.lr) lr_from
+       , sum(l.links) links
+  from channel_link l
+         left join channel_latest fc on l.channel_id_from=fc.channel_id
+         left join channel_latest tc on (link_id=tc.source_id or link_id=tc.discover_source:DestId) and tc.platform=l.platform_to
+  where tc.channel_title is not null
+    and fc.reviews_all>0
+    and platform_to in ('Rumble','BitChute')
+    and channel_id_to is not null
+    --and channel_id_to='yqVw2kOQK4Jl' -- Black Pigeon Speaks
+  group by 1, 2
+)
+   , chan_tags as (
+  select channel_id_to, f.value::string tag, sum(links) links
+  from clg
+     , table (flatten(tags_from, outer => true)) f
+  group by 1, 2
+)
+   , tag_pct as (
+  select channel_id_to
+       , array_compact(array_agg(iff(pct_of_max_links>0.5, tag, null))) tags
+       , array_agg(object_construct('tag', tag, 'pct', pct_of_max_links, 'links', links)) tag_candidates
+  from (
+         select channel_id_to, tag, links/max(links) over (partition by channel_id_to) pct_of_max_links, links
+         from chan_tags
+       )
+  group by 1
+)
+   , channel_pct as (
+  select channel_id_to
+       , array_agg(object_construct('from', channel_id_from, 'pct', pct, 'links', links, 'relevance', relevance, 'lr', lr))
+                   within group ( order by pct desc ) from_channels
+       , avg(relevance) relevance_from_avg
+  from (
+         select *, ratio_to_report(links) over (partition by channel_id_to) pct
+         from (
+                select channel_id_from, channel_id_to, sum(links) links, any_value(relevance_from) relevance, any_value(lr_from) lr
+                from clg
+                group by 1, 2
+              )
+         order by pct desc
+       )
+  group by 1
+)
+   , lr as (
+  select channel_id_to
+       , decode(
+      round(avg(decode(lr_from, 'L', -1, 'C', 0, 'R', 1, null)))
+    , -1, 'L', 0, 'C', 1, 'R') as lr
+  from clg
+  group by 1
+)
+   , s as (
+  select c.channel_id_to, t.tags, t.tag_candidates, c.from_channels, c.relevance_from_avg, lr.lr
+  from channel_pct c
+         left join tag_pct t on c.channel_id_to=t.channel_id_to
+      left join lr on lr.channel_id_to=t.channel_id_to
+)
+select *, sysdate() updated
+from s

@@ -4,4 +4,4 @@ config {
 }
 -- channels that we are interested in processing data yet, but may not be reviwed for display in final reports
 select * from channel_latest
-where (meets_review_criteria and meets_sub_criteria) or platform = 'BitChute'
+where (meets_review_criteria and meets_sub_criteria) or platform <> 'YouTube'
