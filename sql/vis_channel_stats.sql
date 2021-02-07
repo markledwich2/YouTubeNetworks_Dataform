@@ -36,6 +36,6 @@ with cr as (
        , logo_url
   from channel_accepted c
          left join cr on c.channel_id=cr.channel_id
-  where cr.meets_subsviews_criteria
+  where cr.meets_subsviews_criteria and c.platform = 'YouTube'
 )
 select * from s
