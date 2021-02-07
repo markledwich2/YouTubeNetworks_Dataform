@@ -180,13 +180,13 @@ with sam_reviews as (
          left join raw_reviews_by_channel2 u on u.channel_id=r.channel_id
 )
 
-  -- latest channel (don't use the channel table so it can depend on this table)
+  -- latest channel (don't use the channel_latest table so it can depend on this table)
    , cl as (
-  select v:ChannelId::string as channel_id
-       , v:ChannelTitle::string as channel_title
-        , v:Platform::string as platform
-  from channel_stage
-    qualify row_number() over (partition by channel_id order by v:Updated::timestamp_ntz desc)=1
+  select channel_id
+       , channel_title
+        , platform
+  from channel
+     qualify row_number() over (partition by channel_id order by updated desc)=1
 )
 
    , s as (

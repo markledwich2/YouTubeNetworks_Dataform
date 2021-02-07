@@ -40,6 +40,7 @@ with video_errors as (
      , timediff(seconds, '0'::time, l.duration) duration_secs
      , l.views video_views
      , l.upload_date
+     , c.platform
 from u
        inner join video_latest l on l.video_id=u.video_id
        inner join channel_accepted c on u.channel_id=c.channel_id

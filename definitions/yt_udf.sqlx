@@ -55,3 +55,12 @@ as
 }
 return regexMatch(INPUT, PATTERN, FLAGS)
 '
+
+---
+create or replace function public.domainToPlatform(domain string)
+  returns string
+  as
+  $$
+    decode(domain, 'bitchute.com', 'BitChute', 'rumble.com', 'Rumble', 'youtube.com', 'YouTube', 'youtu.be', 'YouTube', 'parler.com', 'Parler')
+  $$
+  

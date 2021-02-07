@@ -1,0 +1,49 @@
+config {
+  type: "incremental",
+  tags:['standard'],
+  dependencies:['channel_latest', 'video_latest', 'yt_udf']
+}
+
+with descr as (
+  select v.description, v.channel_id, v.video_id, v.updated
+  from video_latest v
+         left join channel_accepted c on v.channel_id=c.channel_id
+  union all
+  select description, channel_id, null video_id,  c.updated
+  from channel_accepted c
+)
+  , desc_links as (
+  select d.channel_id channel_id_from
+       , d.video_id video_id_from
+       , lower(m.value:domain::string) domain
+       , m.value: url::string url
+       , c.platform as platform_from
+       , d.updated
+  from descr as d
+         left join channel_latest c on d.channel_id=c.channel_id
+    , table ( flatten(
+      regexmatchall(d.description,'(?<url>(?:https?://)(?:[\\w]*@[\\w]*:)?(?:www\\.)?(?<domain>[\\w-\\.]+)(?:/[\\w-/]+)?)','im')
+    ,outer => true) ) m
+  where url is not null -- array_contains('QAnon'::variant, c.tags)
+  --and domain in ('bitchute.com','twitch.tv','brighteon.com','rumble.com')-- and u.description like '%rumble.com%'
+  -- TODO incremental
+)
+  , parler_q as (
+  select id post_id_from
+       , u.value:domain::string domain
+       , u.value:"long"::string url
+       , created_at updated
+  from parler_posts p
+    , lateral flatten(p.urls) as u
+)
+  , u as (
+  select channel_id_from, video_id_from, null as post_id_from, domain, url, platform_from, updated
+  from desc_links
+  union all
+  select null channel_id_from, null video_id_from, post_id_from, domain, url, 'Parler', updated
+  from parler_q
+)
+select *
+     , domainToPlatform(domain) platform_to
+from u
+ ${ when(incremental(), `where updated > (select max(updated) from ${self()})`) }

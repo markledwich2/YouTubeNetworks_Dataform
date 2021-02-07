@@ -1,6 +1,6 @@
 config {
   type: "table",
-  dependencies: ['channel_link', 'channel_latest']
+  dependencies: ['link_detail', 'channel_latest']
 }
 
 
