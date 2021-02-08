@@ -1,5 +1,5 @@
 config {
-  type: "incremental",
+  type: "table",
   tags: ['standard'],
   dependencies:['link', 'channel_latest', 'video_latest']
 }
@@ -66,4 +66,3 @@ with linkd as (
          left join video_latest tv on tv.source_id=link_id_raw and tv.platform=l.platform_to
 )
 select * from s
-${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
