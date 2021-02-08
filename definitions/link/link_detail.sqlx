@@ -1,49 +1,69 @@
 config {
   type: "incremental",
+  tags: ['standard'],
   dependencies:['link', 'channel_latest', 'video_latest']
 }
+
 
 -- with platform specific link parsing, extract details about the video/channel links are for
 with linkd as (
   select *
        , regexmatch(url,
                     decode(platform_to,
-                           'Rumble','https?://(?:www\\.)?rumble\\.com/(?:(?<path>c|user|account|register|embed)/)?(?<id>[\\w-]*)/?$',
+                           'Rumble',$$https?://(?:www\.)?rumble\.com/(?:(?<path>c|user|account|register|embed)/)?(?<id>[\w-\.]+?)(($)|(.html))$$,
                            'BitChute',
                            'https?://(?:www\\.)?bitchute\\.com/(?:(?<path>channel|video|profile|search|hashtag|accounts/\\w|accounts)/)?(?<id>[\\w-]*)/?$')
     ,'i') p
-       , p:id::string link_id
-       , p:"path"::string path_raw
+
+       , p:"path"::string path
+       , p:id::string as link_id_raw
        , case
            when platform_to='Rumble' then (
              case
-               when path_raw='c' then 'channel'
-               when path_raw is null then iff(link_id regexp $$v\w{5}-.*$$,'video','channel')
-               else path_raw
+               when path='c' then 'channel'
+               when path='user' then 'channel' -- rumble uses have video's just like channels
+               when path is null then iff(link_id_raw regexp $$v\w{5}-.*$$,'video','channel')
+               else path
              end
              )
-           when path_raw='channel' then 'channel'
-           when path_raw is null then 'channel'
-           else path_raw
+           when path='channel' then 'channel'
+           when path is null then 'channel'
+           else path
          end link_type
+       , case platform_to
+    -- rumble channel source_id's include the path to either a user or channel (e.g. c/funnychannel or user/viraluser)
+           when 'Rumble' then (
+             case link_type
+               when 'channel' then coalesce(path,'c')||'/'||link_id_raw
+               when 'video' then regexmatch(link_id_raw, $$(?<id>v\w{5})-.*$$, ''):id::string
+               else link_id_raw
+             end
+             )
+    --iff(path is null, iff(link_type = 'channel', 'c/', '') || link_id_raw, path||'/'||link_id_raw)
+           else link_id_raw
+         end link_id
   from link l
-  where link_type in ('channel','video') and link_id is not null
+  where link_type in ('channel','video')
+    and link_id_raw is not null
 )
-select l.url
-     , l.link_type
-     , l.link_id
-     , l.channel_id_from
-     , l.video_id_from
-     , l.post_id_from
-     , iff(link_type='channel',tc.channel_id,null) channel_id_to
-     , iff(link_type='video',tv.video_id,null) video_id_to
-     , case link_type
-         when 'channel' then channel_id_to is not null
-         when 'video' then video_id_to is not null
-       end link_found
-     , l.platform_from
-     , l.platform_to
-from linkd l
-       left join channel_latest tc on (link_id=tc.source_id or link_id=tc.discover_source:DestId) and tc.platform=l.platform_to
-       left join video_latest tv on tv.source_id=link_id and tv.platform=l.platform_to
+  , s as (
+  select l.url
+       , l.link_type
+       , l.link_id
+       , l.channel_id_from
+       , l.video_id_from
+       , l.post_id_from
+       , iff(link_type='channel',tc.channel_id,null) channel_id_to
+       , iff(link_type='video',tv.video_id,null) video_id_to
+       , case link_type
+           when 'channel' then channel_id_to is not null
+           when 'video' then video_id_to is not null
+         end link_found
+       , l.platform_from
+       , l.platform_to
+  from linkd l
+         left join channel_latest tc on (link_id_raw=tc.source_id or link_id_raw=tc.discover_source:DestId) and tc.platform=l.platform_to
+         left join video_latest tv on tv.source_id=link_id_raw and tv.platform=l.platform_to
+)
+select * from s
 ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }

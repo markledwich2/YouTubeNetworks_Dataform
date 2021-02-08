@@ -29,6 +29,8 @@ where
     not (v:DiscoverSource is not null and v:Platform='YouTube' and v:Updated::timestamp_ntz<='2021-02-06T00:07:00')
     -- Bitchute channels not found didn't prefix their id's
     and not (v:Platform='BitChute' and v:Status='NotFound' and v:Updated::timestamp_ntz<='2021-02-07')
+    -- Rumble id's wern't clean and didn't ahve the user/c channel prefix. remove thather than fix
+    and not (v:Platform='Rumble' and v:Updated::timestamp_ntz<='2021-02-08' )
 )
    , c1 as (
   select *, 'recfluence' as source
