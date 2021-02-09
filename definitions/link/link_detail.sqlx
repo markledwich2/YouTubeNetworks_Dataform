@@ -62,7 +62,7 @@ with linkd as (
        , l.platform_from
        , l.platform_to
   from linkd l
-         left join channel_latest tc on (link_id_raw=tc.source_id or link_id_raw=tc.discover_source:DestId) and tc.platform=l.platform_to
-         left join video_latest tv on tv.source_id=link_id_raw and tv.platform=l.platform_to
+         left join channel_latest tc on link_id=tc.source_id and tc.platform=l.platform_to
+         left join video_latest tv on tv.source_id=link_id and tv.platform=l.platform_to
 )
 select * from s
