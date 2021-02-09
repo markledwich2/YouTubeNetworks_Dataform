@@ -51,6 +51,7 @@ with file_lists as (
        , reviews_algo
        , reviews_all
        , channel_views
+       , channel_video_views
        , platform
   from u
          left join channel_latest c on c.channel_id=u.channel_id
