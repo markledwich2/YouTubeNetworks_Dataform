@@ -63,4 +63,3 @@ create or replace function public.domainToPlatform(domain string)
   $$
     decode(domain, 'bitchute.com', 'BitChute', 'rumble.com', 'Rumble', 'youtube.com', 'YouTube', 'youtu.be', 'YouTube', 'parler.com', 'Parler')
   $$
-  

@@ -93,6 +93,11 @@ with cv as (
                                   or (array_contains('Conspiracy'::variant, tags) and array_contains('PartisanRight'::variant, tags)), 'FR', 'R')
            when lr='L' then iff(arrays_overlap(array_construct('Socialist'), tags), 'FL', 'L')
     end homa_category_proposed
+    , case c.platform
+         when 'Rumble' then c.channel_id
+         when 'BitChute' then 'https://bitchute.com/channel/'||c.source_id
+         when 'YouTube' then 'https://youtube.com/channel/'||c.channel_id
+       end url
   from latest c
          left join latest_names mc
                    on c.main_channel_id=mc.channel_id

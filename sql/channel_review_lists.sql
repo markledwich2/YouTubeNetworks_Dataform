@@ -55,6 +55,7 @@ select u.channel_id
      , channel_views
      , channel_video_views
      , platform
+     , url
 from u
        left join channel_latest c on c.channel_id=u.channel_id
 order by list, sort desc
