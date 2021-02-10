@@ -25,12 +25,14 @@ with file_lists as (
     and reviews_human<1
 )
   , top_alts as (
-  select channel_id
+ with q as (
+     select channel_id
        , concat('Most popular on ',platform,' sans-review - ',mod(abs(hash(c.channel_id)),2)) list
        , greatest(coalesce(channel_views,0),coalesce(channel_video_views,0)) sort
   from channel_latest c
-  where reviews_human<1
-    and platform<>'YouTube'
+  where reviews_all<1 and platform<>'YouTube' and channel_video_views > 1000000
+ )
+select count(*) from q
 )
   , u as (
   select *

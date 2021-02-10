@@ -4,6 +4,8 @@ config {
   uniqueKey:['channel_id'],
   dependencies:['channel', 'channel_review']
 }
+
+
 with cv as (
   select channel_id
        , sum(views) as channel_video_views
@@ -24,10 +26,10 @@ with cv as (
   from channel
     qualify row_number() over (partition by channel_id order by updated desc)=1
 )
-   , latest_names as (
-  select channel_id, channel_title
-  from latest
-)
+--    , latest_names as (
+--   select channel_id, channel_title
+--   from latest
+-- )
    , dead_dates as (
   select *
   from (
@@ -47,7 +49,7 @@ with cv as (
        , cv.channel_lifetime_daily_views
        , cv.avg_minutes
        , channel_lifetime_daily_views*cr.relevance::number as channel_lifetime_daily_views_relevant
-       , mc.channel_title as main_channel_title
+       , cr.main_channel_id
        , cr.tags as tags
        , cr.lr
        , cr.relevance
@@ -99,8 +101,8 @@ with cv as (
          when 'YouTube' then 'https://youtube.com/channel/'||c.channel_id
        end url
   from latest c
-         left join latest_names mc
-                   on c.main_channel_id=mc.channel_id
+--          left join latest_names mc
+--                    on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
          left join channel_review cr on c.channel_id=cr.channel_id
          left join dead_dates d on d.channel_id=c.channel_id

@@ -34,14 +34,14 @@ with sam_reviews as (
               , 1 reviews_algo
          from sam_reviews
          union all
-         select channel_id_to
-              , 'link_review' email
+         select channel_id
+              , 'channel_title_similarity' email
               , lr
-              , null main_channel_id
-              , 'predicted by using links from other reviwed channels' notes
+              , main_channel_id
+              , 'predicted using channel titles and a manual overrides' notes
               , null public_reviewer_notes
               , null public_creator_notes
-              , relevance_from_avg
+              , relevance
               , updated
               , tags
               , 1 reviews_algo
@@ -174,6 +174,7 @@ with sam_reviews as (
               , decode(round(avg(lrnum_human)), -1, 'L', 0, 'C', 1, 'R') as lr_human
               , avg(relevance_human) as relevance_human
               , avg(relevance) as relevance
+              , array_compact(array_agg(nullif(main_channel_id, '')))[0]::string main_channel_id
          from latest_review_no_algo_conflicts r
          group by channel_id
        ) r
