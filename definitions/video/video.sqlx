@@ -1,7 +1,8 @@
 config {
   type: "incremental",
-  tags: ["standard", "core"],
-  dependencies: ["video_stage_view"]
+  tags: ["standard", "views"],
+  dependencies: ["video_stage_view"],
+  uniqueKey:['video_id', 'updated']
 }
 
 select video_id
@@ -9,4 +10,5 @@ select video_id
      , views
      , updated
 from video_stage_view v
+
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }

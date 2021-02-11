@@ -19,9 +19,17 @@ config {
        , v:Statistics:LikeCount::int as likes
        , v:Statistics:DislikeCount::int as dislikes
        , v:Description::string as description
+       , v:Source::string as source
        , try_to_time(v:Duration::string) as duration
        , v:Keywords::array as keywords
        , iff(v:Updated::timestamp_ntz='0001-01-01'::timestamp_ntz, '2019-11-05'::timestamp_ntz, v:Updated::timestamp_ntz) as updated
   from video_stage
-
-  
+where 
+-- 2 seperate bugs for rumble means we ignore beofre 8th Feb, and ones that are direct video crawls
+not (
+  v:Platform='Rumble' 
+  and (
+    v:Updated::timestamp_ntz<='2021-02-08' 
+    or (v:Updated::timestamp_ntz<='2021-02-12' and v:Source='Web')
+  )
+)

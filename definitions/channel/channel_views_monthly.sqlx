@@ -1,5 +1,6 @@
 config {
   type: "table",
+  tags: ['standard', 'views'],
   dependencies: ['video_stats_daily', 'channel_views_daily']
 }
 
@@ -8,7 +9,7 @@ with socialblade as (
        , trunc($2::date, 'months') month
        , $3::int views
        , 'socialblade' as source
-  from @public.yt_data/import/socialblade/ (file_format => tsv)
+  from @public.yt_data/import/socialblade/round3_channels (file_format => tsv)
 )
    , channel_monthly as (
   select channel_id, trunc(date, 'months') month, sum(views) views, 'channel' as source
