@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags: ["standard", "core"],
+  tags: ["standard"],
   dependencies: ['video_latest', 'channel_review', 'channel_sam_import' ],
   uniqueKey:['channel_id', 'updated']
 }
@@ -15,21 +15,21 @@ select v:ChannelId::string channel_id
      , v:ChannelViews::int channel_views
      , v:Country::string country
      , v:Updated::timestamp_ntz updated
-     , v:Status::string status_msg
+     , decode(v:Status::string, '1', 'Alive', coalesce(v:Status::string, 'Unknown')) status_msg
      , v:"Subscriptions"::array subscriptions
      , v:Keywords::string keywords
      , v:DefaultLanguage::string default_langauge
      , v:FeaturedChannelIds::array featured_channels
      , v:Description::string description
-     , v:DiscoverSource discover_source
+     , v:DiscoverSource::string discover_source
 from channel_stage
 where 
     -- Filter out errors. For a day orso, YT collector picked up other platforms and created dead YouTube channels for them
-    not (v:DiscoverSource is not null and v:Platform='YouTube' and v:Updated::timestamp_ntz<='2021-02-06T00:07:00')
+    not (discover_source is not null and platform='YouTube' and updated<='2021-02-06T00:07:00')
     -- Bitchute channels not found didn't prefix their id's
-    and not (v:Platform='BitChute' and v:Status='NotFound' and v:Updated::timestamp_ntz<='2021-02-07')
+    and not (platform='BitChute' and status_msg='NotFound' and updated<='2021-02-07')
     -- Rumble id's wern't clean and didn't ahve the user/c channel prefix. remove thather than fix
-    and not (v:Platform='Rumble' and v:Updated::timestamp_ntz<='2021-02-08' )
+    and not (platform='Rumble' and updated<='2021-02-08' )
 )
    , c1 as (
   select *, 'recfluence' as source
