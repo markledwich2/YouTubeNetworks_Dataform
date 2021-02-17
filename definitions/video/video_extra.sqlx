@@ -75,7 +75,7 @@ with video_extra_view as (
        , sub_error
        , error_type
        , copyright_holder
-      , ${channel.lastNotNull(['video_title', 'upload_date', 'likes', 'dislikes', 'description', 'duration', 'comment_count', 'keywords', 'duration' ], 'video_id')}
+      , ${channel.lastNotNull(['video_title', 'upload_date', 'likes', 'dislikes', 'description', 'duration', 'comment_count', 'keywords' ], 'video_id')}
   from video_extra_view e
   ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
     qualify row_number() over (partition by video_id order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes
