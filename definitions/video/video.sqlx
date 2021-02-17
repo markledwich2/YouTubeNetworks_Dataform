@@ -9,6 +9,8 @@ select video_id
      , channel_id
      , views
      , updated
+     , video_title
+     , upload_date
 from video_stage_view v
 
 ${ when(incremental(), `WHERE updated > (SELECT MAX(updated) FROM ${self()})`) }

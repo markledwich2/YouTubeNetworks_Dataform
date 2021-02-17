@@ -2,23 +2,45 @@ config {
     type: "incremental",
     uniqueKey: ['video_id'],
     tags: ["standard", 'views'],
-    dependencies: ["video"]
+    dependencies: ["video", 'video_extra']
 }
 
-with
- video_stats as (
-   select video_id, min(updated) updated_first, max(updated) updated_last
-   from video
-   group by video_id
- )
- , latest as (
-  select v.*
-  from video_stage_view v
-    --left join video_stats vs on vs.video_id = v.video_id and v.updated = updated_last
-    ${ when(incremental(), `where v.updated > (select max(updated) from ${self()})`)}
-    qualify row_number() over (partition by v.video_id order by updated desc)=1
-)
-select v.*, vs.updated_first
-from latest v
-left join video_stats vs on vs.video_id = v.video_id and v.updated = updated_last
 
+-- video latest
+with latest as (
+  select *, first_value(updated) over (partition by video_id order by updated) updated_first
+  from video
+  ${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
+  --where channel_id='UCL_f53ZEJxp8TtlOkHwMV9Q'
+    qualify row_number() over (partition by video_id order by updated desc)=1
+)
+  , oldest_with_upload as (
+  select video_id, upload_date
+  from video
+  where upload_date is not null
+    --and channel_id='UCL_f53ZEJxp8TtlOkHwMV9Q'
+    qualify row_number() over (partition by video_id order by updated)=1
+)
+select v.updated
+     , v.video_id
+     , v.video_title
+     , v.channel_id
+     , v.views
+     , updated_first
+     , c.platform platform
+     , c.channel_title
+     , e.updated extra_updated
+     -- get oldest upload from extra, and failing that the oldest video (YT videos upload date is not precise the longer time passes (e.g. "1 year ago" is not v good))
+     , coalesce(e.upload_date,u.upload_date) upload_date
+     , e.description
+     , e.error
+     , e.error_type
+     , e.comment_count
+     , e.dislikes
+     , e.likes
+     , e.duration
+     , e.keywords
+from latest v
+       left join video_extra e on e.video_id=v.video_id
+       left join channel_latest c on c.channel_id=v.channel_id
+       left join oldest_with_upload u on v.video_id=u.video_id

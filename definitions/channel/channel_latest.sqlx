@@ -1,6 +1,6 @@
 config {
   type: "table",
-  tags: ['standard', 'core'],
+  tags: ['standard', 'review'],
   uniqueKey:['channel_id'],
   dependencies:['channel', 'channel_review']
 }
