@@ -7,14 +7,14 @@ config {
 
 
 -- video latest
-with 
+with
   video_stage_view_incremental as (
       select * from video_stage_view
       where updated > (select max(updated) from video)
   )
   , latest as (
   select * from video_stage_view${ when(incremental(), `_incremental`)}
-  --where  channel_id='UCL_f53ZEJxp8TtlOkHwMV9Q'
+  --where channel_id = 'UC9k-yiEpRHMNVOnOi_aQK8w' and updated >= '2021-02-17'
   qualify row_number() over (partition by video_id order by updated desc)=1
 )
 select v.updated
@@ -28,16 +28,16 @@ select v.updated
      , c.channel_title
      , e.updated extra_updated
      -- get oldest upload from extra, and failing that the oldest video (YT videos upload date is not precise the longer time passes (e.g. "1 year ago" is not v good))
-     , coalesce(e.upload_date,f.upload_date) upload_date
-     , coalesce(v.description, e.description) description
+     , coalesce(e.upload_date, f.upload_date,v.upload_date) upload_date
+     , coalesce(v.description, e.description, f.description) description
      , e.error
      , e.error_type
      , e.copyright_holder
      , e.comment_count
      , e.dislikes
      , e.likes
-     , e.duration
-     , e.keywords
+     , coalesce(v.duration, e.duration, f.duration) duration
+     , coalesce(v.keywords, e.keywords, f.keywords) keywords
 from latest v
        left join video_extra e on e.video_id=v.video_id
        left join channel_latest c on c.channel_id=v.channel_id
