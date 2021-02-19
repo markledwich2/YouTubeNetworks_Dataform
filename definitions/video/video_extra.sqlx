@@ -2,35 +2,33 @@ config {
     type: 'incremental',
     tags: ['standard'],
     uniqueKey: ['video_id'],
-    dependencies: ['video_latest']
+    dependencies: []
 }
 
-with structure as (
+
+with video_extra_view as (
   select
        -- standard video fields
        -- initially video extra was missing standard fields. Fall back to the video-latest if we have it
-    coalesce(v:Id, v:id, v:VideoId)::string as video_id
-       , coalesce(v:Title::string, l.video_title) as video_title
-       , coalesce(v:ChannelId::string, l.channel_id) as channel_id
-       , coalesce(v:ChannelTitle::string, l.channel_title) as channel_title
-       , coalesce(v:UploadDate::timestamp_ntz, l.upload_date) as upload_date
-       , coalesce(v:Statistics:ViewCount::int, l.views) as views
-       , coalesce(v:Statistics:LikeCount::int, l.likes) as likes
-       , coalesce(v:Statistics:DislikeCount::int, l.dislikes) as dislikes
-       , coalesce(v:Description::string, l.description) as description
-       , coalesce(try_to_time(v:Duration::string), l.duration) as duration
-       , coalesce(v:Keywords::array, l.keywords) as keywords
-       , v:CommentCount::int as comment_count
-       , v:Updated::timestamp_ntz as updated
-       , v:Source::string as source
+    coalesce(v:Id,v:id,v:VideoId)::string video_id
+       , v:Title::string video_title
+       , v:ChannelId::string channel_id
+       , v:ChannelTitle::string channel_title
+       , v:Platform::string platform
+       , nullif(v:UploadDate::timestamp_ntz,'0001-01-01') upload_date
+       -- don't get ViewCount because more recent exists in video table
+       , nullif(v:Statistics:LikeCount::int,0) likes
+       , nullif(v:Statistics:DislikeCount::int,0) dislikes
+       , v:Description::string description
+       , try_to_time(v:Duration::string) duration
+       , v:Keywords::array keywords
+       , v:CommentCount::int comment_count
+       , v:Updated::timestamp_ntz updated
+       , v:Source::string source
+       , coalesce(v:Error,v:error)::string error
+       , coalesce(v:SubError,v:subError)::string sub_error
 
-       -- extra fields (coalesce is for backwards compatibility with the first batch that were using different capitalization)
-       , coalesce(v:HasAd, v:hasAd)::boolean as had_ad
-       , v:Ad::string as ad
-       , coalesce(v:Error, v:error)::string as error
-       , coalesce(v:SubError, v:subError)::string as sub_error
-
-       --these erorr clasifications are out of date
+       --these error classifications are out of date
        , case
            when error is null then null
            when error in('Restricted','Sign in to confirm your age') then 'Restricted'
@@ -42,7 +40,7 @@ with structure as (
            when sub_error='This full-length episode is available for purchase.' then 'Paywall'
            when sub_error like '%copyright%' then 'Copyright claim'
 
-          -- old messages
+    -- old messages
            when error like 'This video is no longer available due to a copyright claim%' then 'Copyright claim'
            when error like 'This video has been removed for violating YouTube''s policy on harassment and bullying.' then 'Harassment and bullying'
            when error like 'This video has been removed for violating YouTube''s Community Guidelines.' then 'Community guidelines'
@@ -57,15 +55,30 @@ with structure as (
 
            when error in ('Video unavailable','This video is unavailable.') then 'Unavailable'
            else 'Unknown'
-    end as error_type
-    --This video contains content from WMG, who has blocked it in your country on copyright grounds.
-       , iff(error_type='Copyright claim', coalesce(
-          regexp_substr(sub_error, 'content from (.+?),', 1, 1, 'e'),
-         regexp_substr(sub_error, 'copyright claim by (.+?).', 1, 1, 'e')) , null) copyright_holder
+         end error_type
+       --This video contains content from WMG, who has blocked it in your country on copyright grounds.
+       , iff(error_type='Copyright claim',coalesce(
+      regexp_substr(sub_error,'content from (.+?),',1,1,'e'),
+      regexp_substr(sub_error,'copyright claim by (.+?).',1,1,'e')),null) copyright_holder
   from video_extra_stage s
-         left join video_latest l on l.video_id=coalesce(v:Id, v:id, v:VideoId)::string
+  where channel_id='UCzQUP1qoWDoEbmsQxvdjxgQ'
+)
+  , s as (
+  select video_id
+       , video_title video_title_raw
+       , channel_id
+       , channel_title
+       , platform
+       , updated
+       , source
+       , error
+       , sub_error
+       , error_type
+       , copyright_holder
+      , ${channel.lastNotNull(['video_title', 'upload_date', 'likes', 'dislikes', 'description', 'duration', 'comment_count', 'keywords' ], 'video_id')}
+  from video_extra_view e
+  ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
+    qualify row_number() over (partition by video_id order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes
 )
 select *
-from structure
-${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
-qualify row_number() over (partition by video_id order by updated desc)=1 -- some videos have many rows missing an updated value - avoid dupes
+from s

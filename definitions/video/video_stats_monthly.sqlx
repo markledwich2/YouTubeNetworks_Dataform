@@ -17,7 +17,6 @@ with vm as (
                 v.video_title,
                 c.channel_title,
                 c.main_channel_id,
-                c.main_channel_title,
                 c.ideology,
                 c.media,
                 v.upload_date,

@@ -3,61 +3,33 @@ config {
   dependencies: ['video_stats_daily', 'channel_views_monthly']
 }
 
-with monthy_views_age as (
+with views_age as (
   select d.channel_id
-       , v.channel_title
-       , floor(datediff(days, v.upload_date, (select max(date) from video_stats_daily))/90) as video_age_90d
-       , min(v.upload_date) min_upload
+       , floor(datediff(days,v.upload_date,(select max(date) from video_stats_daily))/90)*90+90 age_bucket
+       , any_value(v.channel_title) channel_title
        , sum(d.views) views
+       , count(distinct v.video_id) videos
+       , sum(d.views)/90 views_per_day
   from video_stats_daily d
          inner join video_latest v on v.video_id=d.video_id
-      and datediff(days, date, (select max(date) from video_stats_daily))<14 --in the last 14 days of data
-  group by 1, 2, 3
-  order by video_age_90d
-)
-   , tail_portion_raw as (
-  select channel_id
-       , (percent_rank() over (partition by channel_id order by video_age_90d)>0.5) tail50
-       , channel_title
-       , ratio_to_report(views) over (partition by channel_id) portion
-       , min_upload
-  from monthy_views_age
-)
-   , tail_portion as (
-  select channel_id
-       , channel_title
-       , sum(iff(tail50, portion, 0)) tail50_portion
-       , datediff(days, min(min_upload), (select max(date) from video_stats_daily)) oldest_days
-  from tail_portion_raw
+  where v.upload_date>'0001-01-01'
+    and datediff(days,date,(select max(date) from video_stats_daily))<90 --look at the last year of data
   group by 1, 2
+  order by age_bucket
 )
-   , video_portion_of_channel as (
-  select channel_id
-       , sum(video)/sum(channel) video_portion
-       , sum(channel) channel
-  from channel_views_monthly
-  where channel>0
-    and month>=dateadd(month, -2, (select max(month) from channel_views_monthly))
-  group by channel_id
+  , p1 as (
+  select *, ratio_to_report(views) over (partition by channel_id) view_portion
+  from views_age
 )
-   , combined as (
-  select t.channel_id
-       , t.channel_title
-       , t.tail50_portion
-       , v.video_portion
-       , t.oldest_days
-       , percent_rank() over (order by coalesce(v.channel, 0)) channel_pct_rank
-  from tail_portion t
-         left join video_portion_of_channel v on v.channel_id=t.channel_id
+   , p2 as (
+  select *, sum(view_portion) over (partition by channel_id order by age_bucket rows between unbounded preceding and current row) portion_cumulative
+  from p1
+)
+  , s as (
+  select channel_id, any_value(channel_title), max(age_bucket) daily_update_days_back
+  from p2
+  where portion_cumulative < 0.9 or views_per_day>500
+  group by 1
 )
 select *
-     , least(10*365,
-             case
-               -- look back 10yrs if either we ar emissing video views, or there are views in the tail
-               when video_portion<0.9 or tail50_portion>0.05 then 365*10 -- this captures many, but if it works will stop once we get the video portion up
-             -- 120, or more proportional to the channels rank
-               else floor(greatest(365, channel_pct_rank*10*365))
-               end
-  ) daily_update_days_back
-from combined
-order by channel_pct_rank desc
+from s

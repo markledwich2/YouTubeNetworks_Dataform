@@ -48,12 +48,6 @@ with vr as (
 
        , fv.video_title as from_video_title
        , fc.channel_title as from_channel_title
-       , fc.main_channel_title as from_main_channel_title
-       , coalesce(tc.main_channel_title, to_channel_title) as to_main_channel_title
-       , fc.media as from_media
-       , tc.media as to_media
-       , fc.ideology as from_ideology
-       , tc.ideology as to_ideology
   from vr
          left join video_latest fv on fv.video_id = vr.from_video_id
          inner join channel_accepted fc on fc.channel_id = vr.from_channel_id

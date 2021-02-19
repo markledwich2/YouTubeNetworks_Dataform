@@ -1,7 +1,7 @@
 config {
   type: "table",
   dependencies: ['channel', 'date'],
-  tags:['standard']
+  tags:['standard', 'views']
 }
 
 with delta as (

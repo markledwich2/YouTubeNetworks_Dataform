@@ -25,4 +25,13 @@ function periodStatsObject(toDateCol, valueCol, alias) {
   return `array_construct(${periods.join('\n,')}) as ${alias}`
 }
 
-module.exports = { categories, recCatColumns, periodStatsObject };
+function getAlias(colRef) {
+  return colRef.split('.').pop()
+}
+
+function lastNotNull(col, partitionCol, orderCol = 'updated') {
+  var cols = Array.isArray(col) ? col : [col]
+  return cols.map(c => `coalesce(${c}, lag(${c}) ignore nulls over (partition by ${partitionCol} order by ${orderCol}), ${getAlias(c)}) ${c}`).join('\n,')
+}
+
+module.exports = { categories, recCatColumns, periodStatsObject, lastNotNull };

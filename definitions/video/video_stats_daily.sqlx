@@ -1,7 +1,7 @@
 config {
     type:'incremental',
     uniqueKey: ['video_id', 'date'],
-    tags: ['standard'],
+    tags: ['standard', 'views'],
     dependencies: ['video', 'channel_accepted_process', 'video_latest', 'date', 'video_watch_time', 'video_views_raw']
 }
 
@@ -33,7 +33,8 @@ with delta as (
 --    ,'UCEh7V-I77Cs9st5gtH4wd7w' --roma army
 --    , 'UCSYCo8uRGF39qDCxF870K5Q' --owen jones
 --    )
-  ${ when(incremental(), `and updated > (select max(updated) from ${self()})`) } -- standard incremental. video smears work even with only the most recent record
+  ${ when(incremental(), `and (updated>(select max(updated) from video_stats_daily)
+      or not exists(select * from video_stats_daily d where d.video_id=v.video_id))`) } -- standard incremental. video smears work even with only the most recent record
   -- the views spread takes into account previous records of videos. So we should always consider the full set of videos that have been updated
 )
    , days as (

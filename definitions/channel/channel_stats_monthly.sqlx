@@ -1,6 +1,6 @@
 config {
   type: "table",
-  tags: ["standard"],
+  tags: ["standard", 'views'],
   dependencies: ['channel_recs_monthly', 'channel_accepted_process', 'video_stats_monthly']
 }
 
