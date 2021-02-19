@@ -5,14 +5,13 @@ config {
 }
 
 with video_errors as (
-  select e.video_id
-       , e.channel_id
-       , e.error_type
-       , e.copyright_holder
-       , e.updated error_updated
-       , l.updated last_seen
-  from video_extra e
-         inner join video_latest l on l.video_id=e.video_id
+  select video_id
+       , channel_id
+       , error_type
+       , copyright_holder
+       , extra_updated error_updated
+       , updated last_seen
+  from video_latest
   where error_type is not null
     and error_type not in ('Restricted','Not available in USA','Paywall','Device','Unknown')
 )

@@ -1,16 +1,13 @@
 -- Removes fields we don't need for past video records. Otherwise this talbe gets very large for no reason
 
 update video_stage s
-set s.v=object_construct(
-           'VideoId', s.v:VideoId::string,
-           'ChannelId', s.v:ChannelId::string,
-           'Statistics', object_construct('ViewCount', s.v:Statistics:ViewCount::int),
-           'Updated', s.v:Updated::timestamp_ntz
-         )
+set s.v=object_delete(s.v,'Description','Keywords','ChannelTitle','Duration','AddedDate','UploadDate','Thumbnails','Title')
 from (
-       select *
-       from video_stage
-       where v:VideoId = 'luCcuEbSbJI'
-         qualify row_number() over (partition by v:VideoId order by v:Updated::timestamp_ntz desc)>1
-     ) d
+  select *
+  from video_stage
+  --where v:VideoId='luCcuEbSbJI'
+    -- only remove details from middle records
+    qualify row_number() over (partition by v:VideoId order by v:Updated::timestamp_ntz desc)>1
+      and row_number() over (partition by v:VideoId order by v:Updated::timestamp_ntz )>1
+) d
 where s.v:VideoId=d.v:VideoId and s.v:Updated=d.v:Updated

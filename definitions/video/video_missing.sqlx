@@ -1,8 +1,9 @@
 config {
-  type: "table",
+  type: "view",
   dependencies: ['video_latest', 'channel_latest', 'video', 'channel_accepted'],
-  tags: ['standard']
 }
+
+-- no longer used in daily update. Usefull for double checking tho
 
 with channel_latest_update as (
   select v.channel_id

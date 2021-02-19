@@ -63,6 +63,8 @@ with linkd as (
        , l.platform_to
   from linkd l
          left join channel_latest tc on link_id=tc.source_id and tc.platform=l.platform_to
+
+         -- do we need source_id on such a big table?
          left join video_latest tv on tv.source_id=link_id and tv.platform=l.platform_to
 )
 select * from s

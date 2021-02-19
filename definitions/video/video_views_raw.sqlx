@@ -22,7 +22,7 @@ with
        -- from date is the previous updated date, of if that is missing the upload_date
        -- sometimes the upload date is more recent than uploads (e.g. live stream scheduled in advance 21HQL59EsQY)
        , lag(v.updated) over (partition by v.video_id order by v.updated) prev_date
-       , min(upload_date) over (partition by v.video_id order by vl.updated) first_upload_date
+       , vl.upload_date first_upload_date
        , v.updated
   from video v
          ${ when(incremental(), `join vids_to_update u on v.video_id=u.video_id`)} 
