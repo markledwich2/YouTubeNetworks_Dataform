@@ -10,8 +10,8 @@ with
   vids_to_update as (
     select distinct video_id
     from video v
-    where (updated>(select max(updated) from video_views_raw)
-      or not exists(select * from video_views_raw r where r.video_id=v.video_id))
+    where updated>(select max(updated) from video_views_raw)
+      --or not exists(select * from video_views_raw r where r.video_id=v.video_id)
   )
 
   , s1 as (

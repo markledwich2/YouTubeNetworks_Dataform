@@ -1,0 +1,4 @@
+config {
+  type: "table"
+}
+select $1 v from @public.yt_data/import/reddit/rs_2020-11.ndjson.zst (file_format => json_zst)

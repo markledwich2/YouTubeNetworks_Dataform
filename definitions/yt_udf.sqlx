@@ -63,3 +63,11 @@ create or replace function public.domainToPlatform(domain string)
   $$
     decode(domain, 'bitchute.com', 'BitChute', 'rumble.com', 'Rumble', 'youtube.com', 'YouTube', 'youtu.be', 'YouTube', 'parler.com', 'Parler')
   $$
+
+
+---
+create or replace function public.fromUnixTs(ts int)
+returns timestamp_ntz
+ as $$
+  select dateadd('s',ts,'1970-01-01')
+$$

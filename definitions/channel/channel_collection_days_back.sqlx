@@ -5,15 +5,17 @@ config {
 
 with views_age as (
   select d.channel_id
-       , floor(datediff(days,v.upload_date,(select max(date) from video_stats_daily))/90)*90+90 age_bucket
+       , floor(datediff(days,v.upload_date,(select max(date) from video_stats_daily))/30)*30+30 age_bucket
        , any_value(v.channel_title) channel_title
        , sum(d.views) views
        , count(distinct v.video_id) videos
        , sum(d.views)/90 views_per_day
+       , views_per_day/videos views_per_video_per_day
   from video_stats_daily d
          inner join video_latest v on v.video_id=d.video_id
   where v.upload_date>'0001-01-01'
-    and datediff(days,date,(select max(date) from video_stats_daily))<90 --look at the last year of data
+    and datediff(days,date,(select max(date) from video_stats_daily))<90 -- look at last 90d of data
+    --and d.channel_id='UCXIJgqnII2ZOINSWNOGFThA'
   group by 1, 2
   order by age_bucket
 )
@@ -28,7 +30,7 @@ with views_age as (
   , s as (
   select channel_id, any_value(channel_title), max(age_bucket) daily_update_days_back
   from p2
-  where portion_cumulative < 0.9 or views_per_day>500
+  where portion_cumulative < 0.9
   group by 1
 )
 select *
