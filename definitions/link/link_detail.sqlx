@@ -16,7 +16,7 @@ with linkd as (
     ,'i') p
 
        , p:"path"::string path
-       , p:id::string as link_id_raw
+       , p:id::string link_id_raw
        , case
            when platform_to='Rumble' then (
              case
@@ -35,7 +35,7 @@ with linkd as (
            when 'Rumble' then (
              case link_type
                when 'channel' then coalesce(path,'c')||'/'||link_id_raw
-               when 'video' then regexmatch(link_id_raw, $$(?<id>v\w{5})-.*$$, ''):id::string
+               when 'video' then regexmatch(link_id_raw,$$(?<id>v\w{5})-.*$$,''):id::string
                else link_id_raw
              end
              )
@@ -45,6 +45,7 @@ with linkd as (
   from link l
   where link_type in ('channel','video')
     and link_id_raw is not null
+   -- and link_id='grimjim'
 )
   , s as (
   select l.url
@@ -62,9 +63,11 @@ with linkd as (
        , l.platform_from
        , l.platform_to
   from linkd l
-         left join channel_latest tc on link_id=tc.source_id and tc.platform=l.platform_to
-
-         -- do we need source_id on such a big table?
+         left join channel_latest tc on
+        (link_id=tc.source_id or link_id=tc.discover_source:LinkId)
+        and tc.platform=l.platform_to
+      -- do we need source_id on such a big table?
          left join video_latest tv on tv.source_id=link_id and tv.platform=l.platform_to
 )
-select * from s
+select *
+from s
