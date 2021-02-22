@@ -9,7 +9,7 @@ config {
 -- video latest
 with
   video_stage_view_incremental as (
-      select * from video_stage_view
+      select * from video_stage_view s
       where updated > (select max(updated) from video)
   )
   , latest as (
@@ -28,7 +28,7 @@ select v.updated
      , c.channel_title
      , e.updated extra_updated
      -- get oldest upload from extra, and failing that the oldest video (YT videos upload date is not precise the longer time passes (e.g. "1 year ago" is not v good))
-     , coalesce(e.upload_date, f.upload_date,v.upload_date) upload_date
+     , coalesce(e.upload_date, f.upload_date, v.upload_date) upload_date
      , coalesce(v.description, e.description, f.description) description
      , e.error
      , e.error_type

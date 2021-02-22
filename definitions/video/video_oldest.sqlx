@@ -1,16 +1,20 @@
 config {
   type: "incremental",
-  dependencies: ['video_stage_view']
+  dependencies: ['video_stage_view'],
+  uniqueKey: ['video_id']
 }
 
-with 
+-- the oldest video record with a non-null upload date
+with
   -- returns the oldest video deets just from the new rows when incrmental. Otherwise its the actual oldest
   oldest_batch as (
   select video_id, channel_id, upload_date, updated, description, duration, keywords
   from video_stage_view
     ${ when(incremental(), `where updated > (select max(updated) from ${self()})`)}
-    --and channel_id='UCL_f53ZEJxp8TtlOkHwMV9Q'
-    qualify row_number() over (partition by video_id order by updated)=1
+    qualify row_number() over (partition by video_id order by
+    iff(upload_date is null, 1, 0) -- get the oldest with an upload date if possible, otherwise oldest without
+    , updated)=1
 )
 select * from oldest_batch n
-${ when(incremental(), `where exists (select * from ${self()} s where n.video_id = s.video_id)`)}
+-- only add new video's
+${ when(incremental(), `where not exists (select * from ${self()} s where n.video_id = s.video_id)`)}
