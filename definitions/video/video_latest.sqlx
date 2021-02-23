@@ -9,13 +9,15 @@ config {
 -- video latest
 with
   video_stage_view_incremental as (
-      select * from video_stage_view s
-      where updated > (select max(updated) from video)
+      select s.* from video_stage_view s
+      left join video_extra e on e.video_id = s.video_id
+      where s.updated > (select max(updated) from video_latest)
+      OR e.updated > (select max(extra_updated) from video_latest )
   )
   , latest as (
   select * from video_stage_view${ when(incremental(), `_incremental`)}
   --where channel_id = 'UC9k-yiEpRHMNVOnOi_aQK8w' and updated >= '2021-02-17'
-  qualify row_number() over (partition by video_id order by updated desc)=1
+  qualify row_number() over (partition by video_id order by updated desc, extra_updated desc)=1
 )
 select v.updated
      , v.video_id

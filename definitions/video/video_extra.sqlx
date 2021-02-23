@@ -61,7 +61,7 @@ with video_extra_view as (
       regexp_substr(sub_error,'content from (.+?),',1,1,'e'),
       regexp_substr(sub_error,'copyright claim by (.+?).',1,1,'e')),null) copyright_holder
   from video_extra_stage s
-  where channel_id='UCzQUP1qoWDoEbmsQxvdjxgQ'
+  --where channel_id='UCzQUP1qoWDoEbmsQxvdjxgQ'
 )
   , s as (
   select video_id
