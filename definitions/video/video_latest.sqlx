@@ -17,7 +17,7 @@ with
   , latest as (
   select * from video_stage_view${ when(incremental(), `_incremental`)}
   --where channel_id = 'UC9k-yiEpRHMNVOnOi_aQK8w' and updated >= '2021-02-17'
-  qualify row_number() over (partition by video_id order by updated desc, extra_updated desc)=1
+  qualify row_number() over (partition by video_id order by updated desc)=1
 )
 select v.updated
      , v.video_id
