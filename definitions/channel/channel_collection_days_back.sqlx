@@ -29,7 +29,7 @@ with views_age as (
   from p1
 )
   , s as (
-  select channel_id, any_value(channel_title), max(age_bucket) daily_update_days_back
+  select channel_id, any_value(channel_title) channel_title, max(age_bucket) daily_update_days_back
   from p2
   where portion_cumulative < 0.9
   group by 1
