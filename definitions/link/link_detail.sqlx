@@ -1,19 +1,21 @@
 config {
-  type: "table",
+  type: "incremental",
   tags: ['standard'],
-  dependencies:['link', 'channel_latest', 'video_latest']
+  dependencies:['link', 'channel_latest', 'video_latest'],
+  uniqueKey: ['url', 'channel_id_from', 'video_id_from', 'post_id_from']
 }
-
 
 -- with platform specific link parsing, extract details about the video/channel links are for
 with linkd as (
   select *
        , regexmatch(url,
-                    decode(platform_to,
-                           'Rumble',$$https?://(?:www\.)?rumble\.com/(?:(?<path>c|user|account|register|embed)/)?(?<id>[\w-\.]+?)(($)|(.html))$$,
-                           'BitChute',
-                           'https?://(?:www\\.)?bitchute\\.com/(?:(?<path>channel|video|profile|search|hashtag|accounts/\\w|accounts)/)?(?<id>[\\w-]*)/?$')
-    ,'i') p
+                    decode(platform_to
+                      ,'Rumble',$$https?://(?:www\.)?rumble\.com/(?:(?<path>c|user|account|register|embed)/)?(?<id>[\w-\.]+?)(($)|(.html))$$
+                      ,'BitChute',
+                           'https?://(?:www\\.)?bitchute\\.com/(?:(?<path>channel|video|profile|search|hashtag|accounts/\\w|accounts)/)?(?<id>[\\w-]*)/?$'
+                      ,'YouTube',
+                           $$https?://(?:(?:youtu\.be/(?<video1>[\w\-]{11})|(?:(?:www\.)?youtube\.com/(?:(?:watch\?v=)(?<video2>[\w\-]{11})|(?:channel/)(?<channel>[\w\-]{24})))))$$
+                      ),'i') p
 
        , p:"path"::string path
        , p:id::string link_id_raw
@@ -24,6 +26,12 @@ with linkd as (
                when path='user' then 'channel' -- rumble uses have video's just like channels
                when path is null then iff(link_id_raw regexp $$v\w{5}-.*$$,'video','channel')
                else path
+             end
+             )
+           when platform_to='YouTube' then (
+             case
+               when p:channel is not null then 'channel'
+               when coalesce(p:video1,p:video2) is not null then 'video'
              end
              )
            when path='channel' then 'channel'
@@ -39,13 +47,13 @@ with linkd as (
                else link_id_raw
              end
              )
-    --iff(path is null, iff(link_type = 'channel', 'c/', '') || link_id_raw, path||'/'||link_id_raw)
+           when 'YouTube' then coalesce(p:channel,p:video1,p:video2)::string
            else link_id_raw
          end link_id
   from link l
   where link_type in ('channel','video')
-    and link_id_raw is not null
-   -- and link_id='grimjim'
+    and link_id is not null
+   ${ when(incremental(), `and l.updated_wh>(select max(d.updated_wh) from link_detail d)`) }
 )
   , s as (
   select l.url
@@ -54,20 +62,22 @@ with linkd as (
        , l.channel_id_from
        , l.video_id_from
        , l.post_id_from
-       , iff(link_type='channel',tc.channel_id,null) channel_id_to
-       , iff(link_type='video',tv.video_id,null) video_id_to
+       , iff(link_type='channel',coalesce(tc1.channel_id,tc2.channel_id),null) channel_id_to
+       , iff(link_type='video',coalesce(tv.video_id,e.video_id),null) video_id_to
        , case link_type
            when 'channel' then channel_id_to is not null
            when 'video' then video_id_to is not null
          end link_found
        , l.platform_from
        , l.platform_to
+       , l.updated
+       , l.updated_wh
   from linkd l
-         left join channel_latest tc on
-        (link_id=tc.source_id or link_id=tc.discover_source:LinkId)
-        and tc.platform=l.platform_to
-      -- do we need source_id on such a big table?
-         left join video_latest tv on tv.source_id=link_id and tv.platform=l.platform_to
+         left join channel_latest tc1 on link_id=tc1.source_id and tc1.platform=l.platform_to
+          -- detect non-canonical links so we don't keep re-discovering them
+         left join channel_latest tc2 on link_id=tc2.discover_source:LinkId and tc2.platform=l.platform_to
+         left join video_latest tv on coalesce(tv.source_id,tv.video_id)=link_id and tv.platform=l.platform_to
+         left join video_extra e on e.source_id=link_id and tv.platform=l.platform_to
 )
 select *
 from s

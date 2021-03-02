@@ -2,15 +2,13 @@ config {
   tags: ['standard']
 }
 
-CREATE OR REPLACE FUNCTION public.timeSpanToSeconds(ts string)
-  RETURNS double
-  LANGUAGE JAVASCRIPT
-  AS '
+CREATE OR REPLACE FUNCTION public.timeSpanToSeconds(ts string) RETURNS double LANGUAGE JAVASCRIPT AS
+'
 var parts = TS.split(":") // split it at the colons
 var dayParts = parts[0].split(".")
 var daySecs = dayParts.length > 1 ?
-    +dayParts[0] * 24 * 60 * 60 + dayParts[1] * 60 * 60 :
-    dayParts[0] * 60 * 60
++dayParts[0] * 24 * 60 * 60 + dayParts[1] * 60 * 60 :
+dayParts[0] * 60 * 60
 var minSecs = +parts[1] * 60
 var secSecs = +parts[2] // ss.ms just works because it is decimal
 
@@ -18,56 +16,85 @@ var secSecs = +parts[2] // ss.ms just works because it is decimal
 return daySecs + minSecs + secSecs
 
 '
+
 ---
-CREATE OR REPLACE FUNCTION public.arrayExclude(items array, exclude array)
-  RETURNS array
-  LANGUAGE JAVASCRIPT
-  AS '
-  return ITEMS ? ITEMS.filter(v => !EXCLUDE.includes(v)) : undefined
+
+CREATE
+OR REPLACE FUNCTION public.arrayExclude(items array, exclude array) RETURNS array LANGUAGE JAVASCRIPT AS
+'
+return ITEMS ? ITEMS.filter(v => !EXCLUDE.includes(v)) : undefined
 '
 
 ---
-create or replace function public.regexMatchAll(input string,pattern string,flags string)
-  returns array
-  language javascript
-as
+
+CREATE
+OR REPLACE FUNCTION public.arrayJoin(
+  items array,
+  param object,
+  separator string,
+  template string
+) RETURNS string LANGUAGE JAVASCRIPT AS 
+$$ 
+function arrayJoin(items, param, separator, template) { 
+  return items && items
+    .map(i => template.replace(/{(\\w+)}/gi, (_, p2) = > Object.assign({}, param, i)[p2] || ''))
+    .join(separator) 
+}
+
+return arrayJoin(ITEMS, PARAM, SEPARATOR, TEMPLATE)
+$$
+
+---
+
+create
+or replace function public.regexMatchAll(input string, pattern string, flags string) returns array language javascript as
 'function regexMatchAll(input, pattern, flags) {
- let re = new RegExp(pattern, flags ? flags + "g" : "g")
- let res = []
- let m;
- while (m = re.exec(input))
-   res.push(m.groups)
- return res
+let re = new RegExp(pattern, flags ? flags + "g" : "g")
+let res = []
+let m;
+while (m = re.exec(input))
+res.push(m.groups)
+return res
 }
 
 return regexMatchAll(INPUT, PATTERN, FLAGS)
 '
 
+---
+
+create
+or replace function public.matchUrls(input string) returns array as
+$$
+regexmatchall(input, '(?<url>https?://(?:[\\w]*@[\\w]*:)?(?<host>[\\w\\-\\.]+)(?:/[\\w\\-/]+)?\\??[^\\s\\]\\[\\(\\)\\*]*)','im')
+$$
 
 ---
-create or replace function public.regexMatch(input string,pattern string,flags string)
-  returns object 
-  language javascript
-as
+
+create
+or replace function public.regexMatch(input string, pattern string, flags string) returns object language javascript as
 'function regexMatch(input, pattern, flags) {
- var res = new RegExp(pattern, flags).exec(input)
- return res ? res.groups : {};
+  var res = new RegExp(pattern, flags).exec(input)
+  return res ? res.groups : {};
 }
 return regexMatch(INPUT, PATTERN, FLAGS)
 '
 
 ---
-create or replace function public.domainToPlatform(domain string)
-  returns string
-  as
-  $$
-    decode(domain, 'bitchute.com', 'BitChute', 'rumble.com', 'Rumble', 'youtube.com', 'YouTube', 'youtu.be', 'YouTube', 'parler.com', 'Parler')
-  $$
 
+create
+or replace function public.hostToPlatform(host string) 
+returns string as 
+$$ 
+case
+  when host like '%bitchute.com' then 'BitChute'
+  when host like '%rumble.com' then 'Rumble'
+  when host like any ('%youtube.com', '%youtu.be') then 'YouTube'
+  when host like '%parler.com' then 'Parler'
+end 
+$$
 
 ---
-create or replace function public.fromUnixTs(ts int)
-returns timestamp_ntz
- as $$
-  select dateadd('s',ts,'1970-01-01')
-$$
+
+create or replace function public.fromUnixTs(ts int) 
+  returns timestamp_ntz as 
+  $$ dateadd('s', ts, '1970-01-01') $$

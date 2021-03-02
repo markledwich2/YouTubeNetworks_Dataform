@@ -1,49 +1,62 @@
 config {
   type: "incremental",
   tags:['standard'],
-  dependencies:['channel_latest', 'video_latest', 'yt_udf']
+  dependencies:['channel_latest', 'video_latest', 'yt_udf'],
+  uniqueKey:['channel_id_from', 'video_id_from', 'post_id_from', 'url', 'platform_from']
 }
+
+-- links from posts/videos
 
 with descr as (
   select v.description, v.channel_id, v.video_id, v.updated
   from video_latest v
          left join channel_accepted c on v.channel_id=c.channel_id
   union all
-  select description, channel_id, null video_id,  c.updated
+  select description, channel_id, null video_id, c.updated
   from channel_accepted c
 )
   , desc_links as (
   select d.channel_id channel_id_from
        , d.video_id video_id_from
-       , lower(m.value:domain::string) domain
-       , m.value: url::string url
-       , c.platform as platform_from
+       , lower(m.value:host::string) host
+       , m.value:"url"::string url
+       , c.platform platform_from
        , d.updated
   from descr as d
          left join channel_latest c on d.channel_id=c.channel_id
-    , table ( flatten(
-      regexmatchall(d.description,'(?<url>(?:https?://)(?:[\\w]*@[\\w]*:)?(?:www\\.)?(?<domain>[\\w-\\.]+)(?:/[\\w-/]+)?)','im')
-    ,outer => true) ) m
-  where url is not null -- array_contains('QAnon'::variant, c.tags)
-  --and domain in ('bitchute.com','twitch.tv','brighteon.com','rumble.com')-- and u.description like '%rumble.com%'
-  -- TODO incremental
+    , table (flatten(matchurls(d.description))) m
+  where url is not null
+     ${ when(incremental(), `and d.updated > coalesce((select max(updated) from link l where l.channel_id_from is not null), '0000-01-01'::timestamp_ntz)`) }
 )
   , parler_q as (
-  select id post_id_from
-       , u.value:domain::string domain
+  select share_link post_id_from
+       , u.value:host::string host
        , u.value:"long"::string url
        , created_at updated
   from parler_posts p
     , lateral flatten(p.urls) as u
+    ${ when(incremental(), `where updated > coalesce((select max(updated) from link where platform_from = 'Parler'), '0000-01-01'::timestamp_ntz)`) }
+)
+   , reddit_q as (
+     select full_link post_id_from
+     , lower(m.value:host::string) host
+     , m.value:"url"::string url
+     , retrieved_on updated
+from reddit_post
+  , table (flatten(matchurls(selftext))) m
+     ${ when(incremental(), `where updated > coalesce ((select max(updated) from link where platform_from = 'Reddit'), '0000-01-01'::timestamp_ntz)`) }
 )
   , u as (
-  select channel_id_from, video_id_from, null as post_id_from, domain, url, platform_from, updated
+  select channel_id_from, video_id_from, null post_id_from, host, url, platform_from, updated
   from desc_links
   union all
-  select null channel_id_from, null video_id_from, post_id_from, domain, url, 'Parler', updated
+  select null, null, post_id_from, host, url, 'Parler', updated
   from parler_q
+  union all
+  select null, null, post_id_from, host, url, 'Reddit', updated
+  from reddit_q
 )
 select *
-     , domainToPlatform(domain) platform_to
+     , hostToPlatform(host) platform_to
+     , sysdate() updated_wh -- easy incremental logic downstream
 from u
- ${ when(incremental(), `where updated > (select max(updated) from ${self()})`) }

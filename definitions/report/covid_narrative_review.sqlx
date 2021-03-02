@@ -1,0 +1,51 @@
+config {
+  type: "table",
+  dependencies: ['reddit_video_collect', 'video_latest', 'caption']
+}
+
+js {
+  const likeCovid = `like any ('%covid%', '%coronavirus%', '%vaccine%', '%%')`
+}
+
+
+-- covid narrative
+with reddit_linked as (
+  select video_id, subreddit, full_link
+  from reddit_video_collect
+)
+  , covid_captions as (
+  select c.video_id, array_agg(object_construct('offset', offset_seconds,'caption',caption)) captions
+  from (
+    select c.*
+    from caption c
+    where caption ${likeCovid}
+      qualify row_number() over (partition by c.video_id order by offset_seconds::int)<=10
+  ) c
+  group by c.video_id
+)
+  , covid_video as (
+  select v.video_id
+  from video_latest v
+  where video_title ${likeCovid}
+    or description ${likeCovid}
+)
+  , u as (
+  select *, null captions
+  from covid_video v
+  where not exists(select * from covid_captions c where c.video_id=v.video_id)
+  union all
+  select *
+  from covid_captions
+)
+select u.video_id
+     , video_title
+     , channel_id
+     , channel_title
+     , views
+     , description
+     , captions
+     , platform
+     , iff(r.video_id is null, null, object_construct('platform','reddit','post_url',r.full_link,'subreddit',subreddit)) source
+from u
+       join video_latest v on u.video_id=v.video_id
+       left join reddit_linked r on r.video_id=v.video_id

@@ -8,7 +8,7 @@ config {
 with cstage as (
 select v:ChannelId::string channel_id
      , coalesce(v:Platform::string, 'YouTube') platform
-     , v:SourceId::string source_id
+     , coalesce(v:SourceId::string, iff(platform = 'YouTube', channel_id, null)) source_id
      , v:ChannelTitle::string channel_title
      , v:LogoUrl::string logo_url
      , v:Subs::int subs

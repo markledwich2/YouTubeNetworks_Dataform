@@ -11,6 +11,7 @@ with video_extra_view as (
        -- standard video fields
        -- initially video extra was missing standard fields. Fall back to the video-latest if we have it
     coalesce(v:Id,v:id,v:VideoId)::string video_id
+        , coalesce(v:SourceId::string, video_id) source_id
        , v:Title::string video_title
        , v:ChannelId::string channel_id
        , v:ChannelTitle::string channel_title
@@ -61,10 +62,10 @@ with video_extra_view as (
       regexp_substr(sub_error,'content from (.+?),',1,1,'e'),
       regexp_substr(sub_error,'copyright claim by (.+?).',1,1,'e')),null) copyright_holder
   from video_extra_stage s
-  --where channel_id='UCzQUP1qoWDoEbmsQxvdjxgQ'
 )
   , s as (
   select video_id
+       , source_id
        , video_title video_title_raw
        , channel_id
        , channel_title
