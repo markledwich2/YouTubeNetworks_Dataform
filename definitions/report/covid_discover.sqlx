@@ -3,6 +3,7 @@ config {
   dependencies: ['link_detail']
 }
 
+-- links to YouTube videos from posts (e.g. reddit or parler at the time of writing)
 with links as (
   select link_type
        , link_id

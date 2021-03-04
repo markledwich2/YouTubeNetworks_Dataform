@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags:["standard"],
+  tags:["standard", 'core'],
   dependencies:["yt_udf", "channel_latest", "channel_accepted"]
 }
 
