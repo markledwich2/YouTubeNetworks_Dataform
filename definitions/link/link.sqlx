@@ -26,37 +26,37 @@ with descr as (
          left join channel_latest c on d.channel_id=c.channel_id
     , table (flatten(matchurls(d.description))) m
   where url is not null
-     ${ when(incremental(), `and d.updated > coalesce((select max(updated) from link l where l.channel_id_from is not null), '0000-01-01'::timestamp_ntz)`) }
+  ${ when(incremental(), `and d.updated > coalesce((select max(updated) from link l where l.channel_id_from is not null), '0000-01-01'::timestamp_ntz)`) }
+),
+
+platform_inc as (
+  select platform_from, max(updated) max_updated
+  from link
+  group by 1
+),
+
+  post_inc as (
+  select p.* from post p
+  ${ when(incremental(), `left join platform_inc u on p.platform = u.platform_from  where p.updated > coalesce(max_updated, '0000-01-01'::timestamp_ntz)`) }
 )
-  , parler_q as (
-  select share_link post_id_from
-       , u.value:host::string host
-       , u.value:"long"::string url
-       , created_at updated
-  from parler_posts p
-    , lateral flatten(p.urls) as u
-    ${ when(incremental(), `where updated > coalesce((select max(updated) from link where platform_from = 'Parler'), '0000-01-01'::timestamp_ntz)`) }
-)
-   , reddit_q as (
-     select full_link post_id_from
-     , lower(m.value:host::string) host
-     , m.value:"url"::string url
-     , retrieved_on updated
-from reddit_post
-  , table (flatten(matchurls(selftext))) m
-     ${ when(incremental(), `where updated > coalesce ((select max(updated) from link where platform_from = 'Reddit'), '0000-01-01'::timestamp_ntz)`) }
+
+, post_q as (
+select post_id post_id_from
+      , lower(m.value:host::string) host
+      , m.value:"url"::string url
+      , updated
+      , platform platform_from
+from post_inc p
+  , table (flatten(matchurls(body))) m
 )
   , u as (
   select channel_id_from, video_id_from, null post_id_from, host, url, platform_from, updated
   from desc_links
   union all
-  select null, null, post_id_from, host, url, 'Parler', updated
-  from parler_q
-  union all
-  select null, null, post_id_from, host, url, 'Reddit', updated
-  from reddit_q
+  select null, null, post_id_from, host, url, p.platform_from, updated
+  from post_q p
 )
 select *
-     , hostToPlatform(host) platform_to
+     , hosttoplatform(host) platform_to
      , sysdate() updated_wh -- easy incremental logic downstream
 from u

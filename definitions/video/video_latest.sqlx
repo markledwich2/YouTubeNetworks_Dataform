@@ -2,32 +2,30 @@ config {
     type: "incremental",
     uniqueKey: ['video_id'],
     tags: ["standard", 'views'],
-    dependencies: ['video', 'video_extra', 'video_oldest']
+    dependencies: ['video', 'video_extra', 'video_oldest', 'channel_latest_view']
 }
 
 
--- video latest
+--- video latest
 with
   video_stage_view_incremental as (
       select s.* from video_stage_view s
-      left join video_extra e on e.video_id = s.video_id
-      where s.updated > (select max(updated) from video_latest)
-      OR e.updated > (select max(extra_updated) from video_latest )
+      ${ when(incremental(), `left join video_extra e on e.video_id = s.video_id where s.updated > (select max(updated) from video_latest) OR e.updated > (select max(extra_updated) from video_latest)` )}
   )
   , latest as (
-  select * from video_stage_view${ when(incremental(), `_incremental`)}
-  --where channel_id = 'UC9k-yiEpRHMNVOnOi_aQK8w' and updated >= '2021-02-17'
+  select * from video_stage_view_incremental
   qualify row_number() over (partition by video_id order by updated desc)=1
 )
-select v.updated
-     , v.video_id
-     , v.source_id
-     , v.video_title
-     , v.channel_id
-     , v.views
+, s as (
+  select coalesce(v.updated, e.updated) updated
+     , coalesce(v.video_id, e.video_id) video_id
+     , coalesce(v.source_id, e.source_id) source_id
+     , coalesce(v.video_title, e.video_title) video_title
+     , coalesce(v.channel_id, e.channel_id) channel_id
+     , coalesce(v.views, e.views) views
      , f.updated updated_first
      , c.platform platform
-     , c.channel_title
+     , coalesce(c.channel_title, e.channel_title) channel_title
      , e.updated extra_updated
      -- get oldest upload from extra, and failing that the oldest video (YT videos upload date is not precise the longer time passes (e.g. "1 year ago" is not v good))
      , coalesce(e.upload_date, f.upload_date, v.upload_date) upload_date
@@ -41,6 +39,8 @@ select v.updated
      , coalesce(v.duration, e.duration, f.duration) duration
      , coalesce(v.keywords, e.keywords, f.keywords) keywords
 from latest v
-       left join video_extra e on e.video_id=v.video_id
-       left join channel_latest c on c.channel_id=v.channel_id
+       full outer join video_extra e on e.video_id=v.video_id
+       left join channel_latest_view c on c.channel_id=v.channel_id
        left join video_oldest f on v.video_id=f.video_id
+)
+select * from s

@@ -1,0 +1,27 @@
+config {
+  type: "view"
+}
+
+-- common post structure
+with parler as (
+  select share_link post_id
+       , id source_id
+       , created_at updated
+       , body
+       , 'Parler' platform
+  from parler_posts p
+  where post_id is not null
+)
+  , reddit as (
+  select full_link post_id
+       , id source_id
+       , retrieved_on updated
+       , selftext body
+       , 'Reddit' platform
+  from reddit_post
+)
+select *
+from reddit
+union all
+select *
+from parler

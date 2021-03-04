@@ -1,0 +1,7 @@
+config {
+  type: "view"
+}
+
+select *
+from channel
+  qualify row_number() over (partition by channel_id order by updated desc)=1

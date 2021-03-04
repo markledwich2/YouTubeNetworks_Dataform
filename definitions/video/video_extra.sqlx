@@ -15,7 +15,7 @@ with video_extra_view as (
        , v:Title::string video_title
        , v:ChannelId::string channel_id
        , v:ChannelTitle::string channel_title
-       , v:Platform::string platform
+       , coalesce(v:Platform::string, 'YouTube') platform
        , nullif(v:UploadDate::timestamp_ntz,'0001-01-01') upload_date
        -- don't get ViewCount because more recent exists in video table
        , nullif(v:Statistics:LikeCount::int,0) likes
@@ -26,6 +26,7 @@ with video_extra_view as (
        , v:CommentCount::int comment_count
        , v:Updated::timestamp_ntz updated
        , v:Source::string source
+       , v:Statistics:ViewCount::number views
        , coalesce(v:Error,v:error)::string error
        , coalesce(v:SubError,v:subError)::string sub_error
 
@@ -72,6 +73,7 @@ with video_extra_view as (
        , platform
        , updated
        , source
+       , views
        , error
        , sub_error
        , error_type

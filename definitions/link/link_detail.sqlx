@@ -22,7 +22,7 @@ with linkd as (
        , case
            when platform_to='Rumble' then (
              case
-               when path='c' then 'channel'
+               when path='c' then 'channel' 
                when path='user' then 'channel' -- rumble uses have video's just like channels
                when path is null then iff(link_id_raw regexp $$v\w{5}-.*$$,'video','channel')
                else path

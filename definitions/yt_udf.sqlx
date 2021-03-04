@@ -16,6 +16,13 @@ var secSecs = +parts[2] // ss.ms just works because it is decimal
 return daySecs + minSecs + secSecs
 
 '
+---
+
+CREATE
+OR REPLACE FUNCTION public.arrayUniq(items array) RETURNS array LANGUAGE JAVASCRIPT AS
+'
+return ITEMS ? [...new Set(ITEMS)] : undefined
+'
 
 ---
 
@@ -34,27 +41,33 @@ OR REPLACE FUNCTION public.arrayJoin(
   separator string,
   template string
 ) RETURNS string LANGUAGE JAVASCRIPT AS 
-$$ 
+$$
+
 function arrayJoin(items, param, separator, template) { 
   return items && items
-    .map(i => template.replace(/{(\\w+)}/gi, (_, p2) = > Object.assign({}, param, i)[p2] || ''))
+    .map(i => template.replace(/{(\w+)}/gi, (_, p2) => Object.assign({}, param, i)[p2] || ''))
     .join(separator) 
 }
 
 return arrayJoin(ITEMS, PARAM, SEPARATOR, TEMPLATE)
 $$
-
 ---
 
 create
 or replace function public.regexMatchAll(input string, pattern string, flags string) returns array language javascript as
-'function regexMatchAll(input, pattern, flags) {
-let re = new RegExp(pattern, flags ? flags + "g" : "g")
-let res = []
-let m;
-while (m = re.exec(input))
-res.push(m.groups)
-return res
+'
+function regexMatchAll(input, pattern, flags) {
+  let re = new RegExp(pattern, flags ? flags + "g" : "g")
+  let res = []
+  let m;
+  while (m = re.exec(input)) {
+    if(m.groups)
+  		res.push(Object.assign({match: m[0]}, m.groups))
+    else
+      res.push(m[0])
+    console.log(m)
+  }
+  return res
 }
 
 return regexMatchAll(INPUT, PATTERN, FLAGS)
