@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags:['standard'],
+  tags:[],
   dependencies:['channel_latest', 'video_latest', 'yt_udf'],
   uniqueKey:['channel_id_from', 'video_id_from', 'post_id_from', 'url', 'platform_from']
 }
@@ -26,6 +26,8 @@ with descr as (
          left join channel_latest c on d.channel_id=c.channel_id
     , table (flatten(matchurls(d.description))) m
   where url is not null
+
+  -- TODO test this incremental
   ${ when(incremental(), `and d.updated > coalesce((select max(updated) from link l where l.channel_id_from is not null), '0000-01-01'::timestamp_ntz)`) }
 ),
 

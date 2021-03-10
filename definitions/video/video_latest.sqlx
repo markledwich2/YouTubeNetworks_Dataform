@@ -5,42 +5,80 @@ config {
     dependencies: ['video', 'video_extra', 'video_oldest', 'channel_latest_view']
 }
 
-
---- video latest
-with
-  video_stage_view_incremental as (
-      select s.* from video_stage_view s
-      ${ when(incremental(), `left join video_extra e on e.video_id = s.video_id where s.updated > (select max(updated) from video_latest) OR e.updated > (select max(extra_updated) from video_latest)` )}
-  )
+-- video latest
+with video_stage_view_incremental as (
+  select s.*
+  from video_stage_view s
+ -- where s.video_id='bJEp9caeIbI'
+  ${ when(incremental(), `left join video_extra e on e.video_id = s.video_id where s.updated > (select max(updated) from video_latest) OR e.updated > (select max(extra_updated) from video_latest)` )}
+)
   , latest as (
-  select * from video_stage_view_incremental
-  qualify row_number() over (partition by video_id order by updated desc)=1
+  select *
+  from video_stage_view_incremental
+    qualify row_number() over (partition by video_id order by updated desc)=1
 )
-, s as (
-  select coalesce(v.updated, e.updated) updated
-     , coalesce(v.video_id, e.video_id) video_id
-     , coalesce(v.source_id, e.source_id) source_id
-     , coalesce(v.video_title, e.video_title) video_title
-     , coalesce(v.channel_id, e.channel_id) channel_id
-     , coalesce(v.views, e.views) views
-     , f.updated updated_first
-     , c.platform platform
-     , coalesce(c.channel_title, e.channel_title) channel_title
-     , e.updated extra_updated
-     -- get oldest upload from extra, and failing that the oldest video (YT videos upload date is not precise the longer time passes (e.g. "1 year ago" is not v good))
-     , coalesce(e.upload_date, f.upload_date, v.upload_date) upload_date
-     , coalesce(v.description, e.description, f.description) description
-     , e.error
-     , e.error_type
-     , e.copyright_holder
-     , e.comment_count
-     , e.dislikes
-     , e.likes
-     , coalesce(v.duration, e.duration, f.duration) duration
-     , coalesce(v.keywords, e.keywords, f.keywords) keywords
-from latest v
-       full outer join video_extra e on e.video_id=v.video_id
-       left join channel_latest_view c on c.channel_id=v.channel_id
-       left join video_oldest f on v.video_id=f.video_id
+  -- include extra that have no video equivalent regardless of updated date
+  , latest_union_extra as (
+  select updated
+       , video_id
+       , source_id
+       , video_title
+       , channel_id
+       , views
+       , channel_title
+       , upload_date
+       , description
+       , duration
+       , keywords
+       , 'video' table_source
+       , platform
+  from latest
+  union all
+  select updated
+       , video_id
+       , source_id
+       , video_title
+       , channel_id
+       , views
+       , channel_title
+       , upload_date
+       , description
+       , duration
+       , keywords
+       , 'extra' table_source
+       , platform
+  from video_extra e
+  where not exists(select * from latest l where l.video_id=e.video_id)
+  ${ when(incremental(), `and not exists(select * from video_latest v where v.video_id=e.video_id)`) } -- need ot check main table because latest will be missing many rows on an incremental run
 )
-select * from s
+  , s as (
+  select v.updated
+       , v.video_id
+       , v.source_id
+       , coalesce(v.video_title,e.video_title) video_title
+       , coalesce(v.channel_id,e.channel_id) channel_id
+       , v.views
+       , f.updated updated_first
+       , coalesce(v.channel_id,e.channel_id,c.platform,'YouTube') platform
+       , coalesce(c.channel_title,e.channel_title) channel_title
+       , e.updated extra_updated
+       -- get oldest upload from extra, and failing that the oldest video (YT videos upload date is not precise the longer time passes (e.g. "1 year ago" is not v good))
+       , coalesce(e.upload_date,f.upload_date,v.upload_date) upload_date
+       , coalesce(v.description,e.description,f.description) description
+       , e.error
+       , e.error_type
+       , e.copyright_holder
+       , e.comment_count
+       , e.dislikes
+       , e.likes
+       , coalesce(v.duration,e.duration,f.duration) duration
+       , coalesce(v.keywords,e.keywords,f.keywords) keywords
+       , table_source
+  from latest_union_extra v
+         left join video_extra e on e.video_id=v.video_id -- Loads extra's without data from view on incremental!!
+         left join channel_latest_view c on c.channel_id=v.channel_id
+         left join video_oldest f on v.video_id=f.video_id
+)
+
+select *
+from s

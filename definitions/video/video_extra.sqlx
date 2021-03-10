@@ -17,7 +17,6 @@ with video_extra_view as (
        , v:ChannelTitle::string channel_title
        , coalesce(v:Platform::string, 'YouTube') platform
        , nullif(v:UploadDate::timestamp_ntz,'0001-01-01') upload_date
-       -- don't get ViewCount because more recent exists in video table
        , nullif(v:Statistics:LikeCount::int,0) likes
        , nullif(v:Statistics:DislikeCount::int,0) dislikes
        , v:Description::string description
@@ -63,6 +62,7 @@ with video_extra_view as (
       regexp_substr(sub_error,'content from (.+?),',1,1,'e'),
       regexp_substr(sub_error,'copyright claim by (.+?).',1,1,'e')),null) copyright_holder
   from video_extra_stage s
+  where video_id is not null
 )
   , s as (
   select video_id
