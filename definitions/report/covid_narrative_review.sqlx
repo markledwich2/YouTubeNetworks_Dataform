@@ -10,7 +10,7 @@ js {
 }
 
 
--- covid narrative
+-- covid videos
 with post_link as (
   select video_id, froms
   from covid_discover

@@ -42,7 +42,6 @@ OR REPLACE FUNCTION public.arrayJoin(
   template string
 ) RETURNS string LANGUAGE JAVASCRIPT AS 
 $$
-
 function arrayJoin(items, param, separator, template) { 
   return items && items
     .map(i => template.replace(/{(\w+)}/gi, (_, p2) => Object.assign({}, param, i)[p2] || ''))
@@ -111,3 +110,24 @@ $$
 create or replace function public.fromUnixTs(ts int) 
   returns timestamp_ntz as 
   $$ dateadd('s', ts, '1970-01-01') $$
+
+
+---
+create or replace function public.covidWords(input string)
+returns array as
+$$
+select regexmatchall(input, '\\b(covid|coronavirus|SARS-CoV-2|vaccine|Wuhan flu|China virus|vaccinated|Pfizer|Moderna|BioNTech|AstraZeneca|Johnson \& Johnson|CDC|world health organization|Herd immunity)\\b', 'i')
+$$
+
+---
+create or replace function public.hasCovidWords(input string)
+returns array as
+$$
+select array_size(hasCovidWords(input)) > 0 
+$$
+
+---
+create
+  or replace function public.arrayflatten(items array) returns array
+  language javascript as
+'return ITEMS ? ITEMS.reduce(function(a, b){ return a.concat(b); }) : undefined'
