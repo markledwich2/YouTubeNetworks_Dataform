@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags:['standard', 'core'],
-  dependencies:["yt_udf", "channel_latest", "channel_accepted"]
+  dependencies:["yt_udf", "channel_latest", "channel_accepted"],
+  description:'Channel data from all platforms'
 }
 
 with latest as (

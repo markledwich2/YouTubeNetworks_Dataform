@@ -2,13 +2,13 @@ config {
   type: "table",
   tags: ['standard', 'review', 'core'],
   uniqueKey:['channel_id'],
-  dependencies:['channel', 'channel_review']
+  dependencies:['channel', 'channel_review', 'video_latest']
 }
 
 
 with cv as (
   select channel_id
-       , sum(views) as channel_video_views
+       , sum(views)::int as channel_video_views
        , min(upload_date) as from_date
        , max(upload_date) as to_date
        , greatest(datediff(day

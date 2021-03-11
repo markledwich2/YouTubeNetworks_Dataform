@@ -25,7 +25,7 @@ with video_extra_view as (
        , v:CommentCount::int comment_count
        , v:Updated::timestamp_ntz updated
        , v:Source::string source
-       , v:Statistics:ViewCount::number views
+       , v:Statistics:ViewCount::int views
        , coalesce(v:Error,v:error)::string error
        , coalesce(v:SubError,v:subError)::string sub_error
 
