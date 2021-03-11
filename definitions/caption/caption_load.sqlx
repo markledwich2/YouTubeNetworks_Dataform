@@ -12,7 +12,7 @@ with caps as (
        , v:VideoId::string video_id
        , v:Captions::array captions
   from caption_stage c
-  ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+  ${ when(incremental(), ` where v:Updated  > (SELECT MAX(updated) FROM ${self()})::string`) }
 )
 select c.video_id
      , max(c.updated) updated
