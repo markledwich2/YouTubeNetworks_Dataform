@@ -121,9 +121,9 @@ $$
 
 ---
 create or replace function public.hasCovidWords(input string)
-returns array as
+returns boolean as
 $$
-select array_size(hasCovidWords(input)) > 0 
+select array_size(covidWords(input)) > 0 
 $$
 
 ---

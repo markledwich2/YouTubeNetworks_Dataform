@@ -1,6 +1,6 @@
 config {
   type: "table",
-  tags: ['init']
+  tags: ['init', 'narrative']
 }
 
 select metadata$filename as file

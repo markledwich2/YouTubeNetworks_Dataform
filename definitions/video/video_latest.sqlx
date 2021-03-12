@@ -59,7 +59,7 @@ with video_stage_view_incremental as (
        , coalesce(v.channel_id,e.channel_id) channel_id
        , v.views
        , f.updated updated_first
-       , coalesce(v.channel_id,e.channel_id,c.platform,'YouTube') platform
+       , coalesce(v.platform,e.platform,c.platform,'YouTube') platform
        , coalesce(c.channel_title,e.channel_title) channel_title
        , e.updated extra_updated
        -- get oldest upload from extra, and failing that the oldest video (YT videos upload date is not precise the longer time passes (e.g. "1 year ago" is not v good))
