@@ -2,7 +2,10 @@ config {
   type: "incremental",
   tags:['standard', 'core'],
   dependencies:["yt_udf", "channel_latest", "channel_accepted"],
-  description:'Channel data from all platforms'
+  description:'Channel data from all platforms',
+  snowflake: {
+     clusterBy:['video_id']
+  }
 }
 
 with latest as (

@@ -2,7 +2,10 @@ config {
     type:'incremental',
     uniqueKey: ['video_id', 'date'],
     tags: ['standard', 'views'],
-    dependencies: ['video', 'channel_accepted_process', 'video_latest', 'date', 'video_watch_time', 'video_views_raw']
+    dependencies: ['video', 'channel_accepted_process', 'video_latest', 'date', 'video_watch_time', 'video_views_raw'],
+    snowflake: {
+      clusterBy:['date', 'channel_id']
+    }
 }
 
 -- video_stats_daily spreads video views from our patchy as-at-time records into an estimate for views on each day
@@ -144,7 +147,3 @@ because the formula is an approximation we need to adjust as a second step to ma
 )
 select *
 from s2
-
-post_operations {
-  alter table ${self()} cluster by (date, channel_id)
-}

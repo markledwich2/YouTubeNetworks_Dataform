@@ -2,7 +2,10 @@ config {
     type: "incremental",
     uniqueKey: ['video_id'],
     tags: ["standard", 'views', 'core'],
-    dependencies: ['video', 'video_extra', 'video_oldest', 'channel_latest_view']
+    dependencies: ['video', 'video_extra', 'video_oldest', 'channel_latest_view'],
+    snowflake: {
+      clusterBy:['video_id']
+    }
 }
 
 -- video latest
@@ -75,7 +78,7 @@ with video_stage_view_incremental as (
        , coalesce(v.keywords,e.keywords,f.keywords) keywords
        , table_source
   from latest_union_extra v
-         left join video_extra e on e.video_id=v.video_id -- Loads extra's without data from view on incremental!!
+         left join video_extra e on e.video_id=v.video_id
          left join channel_latest_view c on c.channel_id=v.channel_id
          left join video_oldest f on v.video_id=f.video_id
 )
