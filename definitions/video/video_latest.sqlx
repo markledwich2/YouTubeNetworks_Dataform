@@ -52,7 +52,8 @@ with video_stage_view_incremental as (
        , platform
   from video_extra e
   where not exists(select * from latest l where l.video_id=e.video_id)
-  ${ when(incremental(), `and not exists(select * from video_latest v where v.video_id=e.video_id)`) } -- need ot check main table because latest will be missing many rows on an incremental run
+  ${ when(incremental(), `and not exists(select * from video_latest v where v.video_id=e.video_id)`)} 
+  -- need to check main table because latest will be missing many rows on an incremental run
 )
   , s as (
   select v.updated
@@ -82,6 +83,4 @@ with video_stage_view_incremental as (
          left join channel_latest_view c on c.channel_id=v.channel_id
          left join video_oldest f on v.video_id=f.video_id
 )
-
-select *
-from s
+select * from s
