@@ -1,6 +1,7 @@
 config {
   type: "incremental",
-  uniqueKey:['videoId', 'part', 'offset']
+  uniqueKey:['videoId', 'part', 'offset'],
+  tags:['standard']
 }
 
 with entity as (
