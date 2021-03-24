@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  uniqueKey:['videoId', 'part', 'offset'],
+  uniqueKey:['video_id', 'part', 'offset'],
   tags:['standard']
 }
 
