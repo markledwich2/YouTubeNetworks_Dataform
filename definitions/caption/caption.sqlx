@@ -14,7 +14,7 @@ with latest as (
        , v:Captions::array as captions
   from caption_stage s
   --and video_id = 'asQ7lsY4EJg'
-  ${ when(incremental(), ` where updated > (SELECT MAX(updated) FROM ${self()})`) }
+  ${ when(incremental(), ` where v:Updated > (SELECT MAX(updated)::string FROM ${self()})`) }
   qualify row_number() over (partition by video_id order by updated desc) = 1
 )
    , flattened as (

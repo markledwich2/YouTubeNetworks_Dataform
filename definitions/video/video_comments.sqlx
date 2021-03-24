@@ -6,7 +6,7 @@ config {
 
 with stage_latest as (
   select * from video_extra_stage
-  ${ when(incremental(), `where  v:Updated::timestamp_ntz > (select max(updated) from ${self()})`) }
+  ${ when(incremental(), `where  v:Updated > (select max(updated)::string from ${self()})`) }
   qualify row_number() over (partition by v:VideoId::string order by  v:Updated::timestamp_ntz desc) = 1
 )
 
