@@ -1,17 +1,16 @@
 config {
   type: "incremental",
-  uniqueKey:['video_id', 'part', 'offset_seconds'],
-  tags:['standard']
+  uniqueKey:['video_id', 'part', 'offset_seconds', 'entity_type', 'entity_value', 'start_char'],
+  tags:['standard'],
+  snowflake: {
+     clusterBy:['part', 'entity_type', 'entity_value']
+  }
 }
 
 with entity as (
-  select v:videoId::string video_id
-      , v:part::string part
-      , v:entities::array entities
-      , v:offset::int as offset_seconds
-      , v:updated::timestamp_ntz updated
-  from video_entity_stage
-  ${ when(incremental(), `where updated > (select max(updated) from ${self()})`) }
+  select *
+  from video_entity_stage_vew
+  ${ when(incremental(), `where updated > (select max(updated)::string from ${self()})`) }
   qualify row_number() over (partition by video_id, part, offset_seconds order by updated desc)=1
 )
 select t.video_id, t.part, t.offset_seconds, t.updated, e.value:name::string entity_value, e.value:type::string entity_type
