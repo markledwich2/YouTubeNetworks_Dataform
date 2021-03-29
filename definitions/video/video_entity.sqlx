@@ -13,6 +13,6 @@ with entity as (
   ${ when(incremental(), `where updated > (select max(updated)::string from ${self()})`) }
   qualify row_number() over (partition by video_id, part, offset_seconds order by updated desc)=1
 )
-select t.video_id, t.part, t.offset_seconds, t.updated, e.value:name::string entity_value, e.value:type::string entity_type
+select t.video_id, t.part, t.offset_seconds, t.updated, t.start_char, t.end_char, e.value:name::string entity_value, e.value:type::string entity_type
 from entity t,
 lateral flatten(input => entities) e
