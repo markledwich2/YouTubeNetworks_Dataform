@@ -9,7 +9,7 @@ config {
 
 with entity as (
   select *
-  from video_entity_stage_vew
+  from video_entity_stage_view
   ${ when(incremental(), `where updated > (select max(updated)::string from ${self()})`) }
   qualify row_number() over (partition by video_id, part, offset_seconds order by updated desc)=1
 )
