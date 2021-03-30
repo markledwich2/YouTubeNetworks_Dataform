@@ -7,6 +7,4 @@ select v:videoId::string video_id
     , v:entities::array entities
     , v:offset::int as offset_seconds
     , v:updated::timestamp_ntz updated
-    , v:start_char::int start_char
-    , v:end_char::int end_char
 from video_entity_stage

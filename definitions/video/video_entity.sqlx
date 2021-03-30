@@ -10,9 +10,21 @@ config {
 with entity as (
   select *
   from video_entity_stage_view
+  --where updated>='2021-03-29' and part = 'caption'
   ${ when(incremental(), `where updated > (select max(updated)::string from ${self()})`) }
+  --limit 500
+)
+, latest as (
+  select * from entity
   qualify row_number() over (partition by video_id, part, offset_seconds order by updated desc)=1
 )
-select t.video_id, t.part, t.offset_seconds, t.updated, t.start_char, t.end_char, e.value:name::string entity_value, e.value:type::string entity_type
-from entity t,
-lateral flatten(input => entities) e
+select t.video_id
+     , t.part
+     , t.offset_seconds
+     , t.updated
+     , e.value: name::string entity_value
+     , e.value: type::string entity_type
+     , e.value:start_char::int start_char
+     , e.value:end_char::int end_char
+from latest t
+  , lateral flatten(input => entities) e
