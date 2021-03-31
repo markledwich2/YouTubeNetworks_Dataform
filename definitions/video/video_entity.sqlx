@@ -10,9 +10,7 @@ config {
 with entity as (
   select *
   from video_entity_stage_view
-  --where updated>='2021-03-29' and part = 'caption'
   ${ when(incremental(), `where updated > (select max(updated)::string from ${self()})`) }
-  --limit 500
 )
 , latest as (
   select * from entity

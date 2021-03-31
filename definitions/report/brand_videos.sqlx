@@ -1,0 +1,27 @@
+config {
+  type: "table",
+  tags: ['standard']
+}
+
+with q as (
+  select lower(entity_value) brand, part, video_id, count(*) mentions
+       , min(offset_seconds) first_mention_secs
+  from video_entity
+  where entity_type='ORG'
+    and brand in ('amazon','google','apple','disney','nfl','cdc','the catholic church','ford','microsoft','starbucks','nhs','gm','ebay','boeing',
+                  'the world health organization','mcdonald''s','sony','nike','nasa','honda','toyota','samsung','chevy','target','jeep',
+                  'goldman sachs','mercedes','costco','fiat','ge','at&t','porsche','kia','bp','verizon','pepsi','ferrari','hertz','sap',
+                  'general motors','huawei','delta','burger king','ikea','nissan','monsanto','red cross','walmart','cadillac','taco bell',
+                  'volkswagen','pfizer','whole foods','chrysler','astrazeneca','wells fargo','volvo','tesco','kfc','audi','mazda','chevron','hp',
+                  'prada','viacom','enron','subway','citigroup','us treasury','the reserve bank','the u.s supreme court','wayfair','woolworths',
+                  'kmart')
+
+  group by 1,2,3
+)
+select q.video_id, q.part, q.brand, q.mentions,
+      max(first_mention_secs) over (partition by q.video_id) first_mention_secs
+       , v.upload_date, v.video_title, v.channel_title, v.channel_id,
+       v.views::int video_views, v.platform
+from q
+left join video_latest v on v.video_id = q.video_id
+where upload_date>='2020-01-01'

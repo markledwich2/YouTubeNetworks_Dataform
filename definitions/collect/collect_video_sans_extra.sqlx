@@ -1,0 +1,7 @@
+config {
+  type: "view"
+}
+
+select video_id, channel_id
+  from video_latest
+  where extra_updated is null and error_type is null
