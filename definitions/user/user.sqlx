@@ -1,0 +1,18 @@
+config {
+  type: "incremental",
+  tags:['standard'],
+  uniqueKey:['user_id']
+}
+
+with user_view as (
+select v:UserId::string user_id
+, v:Name::string user_name
+, v:Platform::string platform
+, v:ProfileUrl::string profile_url
+, v:Subscriptions::array subscriptions
+, v:Updated::timestamp_ntz updated
+from user_stage
+)
+select * from user_view
+  ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
+    qualify row_number() over (partition by user_id order by updated desc)=1
