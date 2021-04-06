@@ -1,6 +1,6 @@
 config {
   type: "table",
-  tags: ['standard']
+  tags: ['standard', 'entity']
 }
 
 with q as (

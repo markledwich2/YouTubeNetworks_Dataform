@@ -1,7 +1,7 @@
 config {
   type: "incremental",
   uniqueKey:['video_id', 'part', 'offset_seconds', 'entity_type', 'entity_value', 'start_char'],
-  tags:['standard'],
+  tags:['standard', 'entity'],
   snowflake: {
      clusterBy:['part', 'entity_type', 'entity_value']
   }

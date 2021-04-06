@@ -1,0 +1,22 @@
+config {
+  type: "incremental",
+  tags:['standard'],
+  uniqueKey:['comment_id']
+}
+
+with comment_view as (
+select v:Author::string author
+     , v:AuthorChannelId::string author_channel_id
+     , v:"Comment"::string comment
+     , v:ReplyToCommentId::string reply_to_comment_id
+     , v:CommentId::string comment_id
+     , v:Created::timestamp_ntz created
+     , v:IsChannelOwner::boolean is_channel_owner
+     , v:Likes::int likes
+     , v:Updated::timestamp_ntz updated
+     , v:VideoId::string video_id
+from comment_stage
+)
+select * from comment_view
+  ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
+    qualify row_number() over (partition by comment_id order by updated desc)=1

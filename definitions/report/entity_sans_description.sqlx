@@ -1,0 +1,18 @@
+config {
+  type: "view"
+}
+
+with ent_stats as (
+  select video_id, max(updated) latest_update
+  from video_entity
+  group by 1
+)
+  , s as (
+  select v.video_id
+  from video_extra v
+         left join ent_stats e on e.video_id=v.video_id
+  where v.updated>='2021-03-30' -- a huge amount of missing extras were updated, get these vids into entities
+    and latest_update<'2021-04-01' -- missed a bunch of updates. ensure we only cover videos that wern't updated for entities
+    and not exists(select * from video_entity e where e.video_id=v.video_id and e.part='description')
+)
+select * from s
