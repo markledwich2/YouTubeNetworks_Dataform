@@ -40,6 +40,14 @@ with cv as (
        )
     qualify row_number() over (partition by channel_id order by death_recorded desc)=1 --latest death recorded
 )
+, topic_raw as (
+  select $1::string channel_id, $2::string topic
+  from @public.yt_data/import/channels/channel_api_results.20210411.topics.txt.gz (file_format => tsv)
+)
+, topics as (
+  select channel_id, array_agg(distinct topic) topics from topic_raw
+  group by 1
+)
    , c2 as (
   select c.*
        , cv.channel_video_views
@@ -100,12 +108,14 @@ with cv as (
          when 'BitChute' then 'https://bitchute.com/channel/'||c.source_id
          when 'YouTube' then 'https://youtube.com/channel/'||c.channel_id
        end url
+      , t.topics
   from latest c
 --          left join latest_names mc
 --                    on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
          left join channel_review cr on c.channel_id=cr.channel_id
          left join dead_dates d on d.channel_id=c.channel_id
+         left join topics t on t.channel_id = c.channel_id
 )
 select *
 from c2

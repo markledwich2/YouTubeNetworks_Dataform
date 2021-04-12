@@ -1,0 +1,25 @@
+config {
+  type: "table",
+  dependencies: ['video_latest', 'caption']
+}
+
+js {
+  function select_context(table, col, part) {
+    part = part || col
+    return `
+     select video_id
+     , arrayuniq(regexmatchall(${col},
+                     '\\\\b(lululemon|Lorna Jane|Alo Yoga|Vuori|Nike|YogaOutlet|Fabletics|Gymshark|Outdoor Voices|Public Rec|L''urv|Adidas|Puma|Under Armour|ECHT|P\.E\. Nation|White Fox Active|Ryderwear|Cleo Harper|Squat Wolf|Reebok|Ivy Park|Jaggad|Lilybod|Varley|Rockwear|Spanx|Athleta|Beach Riot|FP Movement|Aerie|Torrid)\\\\b',
+                     'i')) matches
+, ${col} context, '${part}' part
+from ${table}
+where array_size(matches)>0
+    `
+  }
+}
+
+${select_context('caption', 'caption')}
+union all
+${select_context('video_latest', 'video_title', 'title')}
+union all
+${select_context('video_latest', 'description')}

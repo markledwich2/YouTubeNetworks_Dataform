@@ -1,0 +1,58 @@
+config {
+  type: "table"
+}
+
+
+with subs as (
+  select u.user_id
+       , u.user_name
+       , c.value:Id::string channel_id
+       , c.value:Title::string channel_title
+  from user u
+    , table (flatten(subscriptions)) c
+  where exists(select * from channel_latest c where c.channel_id=channel_id and c.meets_sub_criteria)
+)
+  -- percent subscribed ot each channel. The document frequency in TF/IDF terms
+  , df as (
+  select channel_id
+       , channel_title
+       , subs
+       , subs/(select count(distinct user_id) from user)*100 sub_pct
+  from (
+    select channel_id, any_value(channel_title) channel_title, count(*) subs
+    from subs
+    group by 1
+  )
+  order by subs desc
+)
+-- for each channel combo (a,b), what is the frequency they occur together vs the % they are subscribed to overall
+  , combo as (
+  select a.channel_id channel_a, b.channel_id channel_b, count(*) together_count
+  from subs a
+         join subs b on a.user_id=b.user_id
+  where channel_a!=channel_b
+    and  exists(select * from channel_accepted c where c.channel_id=a.channel_id)
+    --and a.channel_id in ('UCfrlXVXz-pT9AmmDELhpyOw')
+    --where a.user_id = 'UCnX-lZ_ewUeC7Mc1ZTb7skw'
+  group by 1, 2
+    having together_count > 10 -- ignore small numbers
+)
+  , related as (
+  select channel_a channel_id
+       , ca.channel_title
+       , channel_b related_channel_id
+       , cb.channel_title related_channel_title
+       , together_count
+       , df.sub_pct subs_pct_b
+       , together_count / subs_pct_b score1
+       , together_count/(0.01+subs_pct_b) score2
+      , rank() over (partition by channel_a order by score2 desc) rank
+  from combo
+         join df on df.channel_id=channel_b
+         join channel_latest ca on ca.channel_id=channel_a
+         join channel_latest cb on cb.channel_id=channel_b
+    qualify rank < 100
+)
+select *
+from related
+order by rank
