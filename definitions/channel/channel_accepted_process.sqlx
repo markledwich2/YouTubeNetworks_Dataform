@@ -1,6 +1,7 @@
 config {
   type: "view",
-  dependencies: ['channel_latest']
+  dependencies: ['channel_latest'],
+  tags: ["standard"]
 }
 -- channels that we are interested in processing data yet, but may not be reviwed for display in final reports
 select * from channel_latest

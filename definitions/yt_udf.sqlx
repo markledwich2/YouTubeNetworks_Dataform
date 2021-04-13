@@ -56,7 +56,8 @@ create
 or replace function public.regexMatchAll(input string, pattern string, flags string) returns array language javascript as
 '
 function regexMatchAll(input, pattern, flags) {
-  let re = new RegExp(pattern, flags ? flags + "g" : "g")
+  flags = flags ? flags + "g" : "g"
+  let re = new RegExp(pattern, flags)
   let res = []
   let m;
   while (m = re.exec(input)) {
@@ -66,7 +67,7 @@ function regexMatchAll(input, pattern, flags) {
       res.push(m[0])
     console.log(m)
   }
-  return res
+  return flags.includes("i") ? res.map(r => r.toLowerCase()) : res
 }
 
 return regexMatchAll(INPUT, PATTERN, FLAGS)
