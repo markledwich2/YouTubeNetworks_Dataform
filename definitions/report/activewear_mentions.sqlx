@@ -8,7 +8,7 @@ js {
     part = part || col
     var allExpressions = [
       'video_id', 
-      `arrayuniq(regexmatchall(${col}, '\\\\b(lululemon|Lorna Jane|Alo Yoga|Vuori|Nike|YogaOutlet|Fabletics|Gymshark|Outdoor Voices|Public Rec|L''urv|Adidas|Puma|Under Armour|ECHT|P\\.E\\. Nation|White Fox Active|Ryderwear|Cleo Harper|Squat Wolf|Reebok|Ivy Park|Jaggad|Lilybod|Varley|Rockwear|Spanx|Athleta|Beach Riot|FP Movement|Aerie|Torrid)\\\\b', 'i')) matches`,
+      `arrayuniq(regexmatchall(${col}, '\\\\b(lululemon|Lorna Jane|Alo Yoga|Vuori|Nike|YogaOutlet|Fabletics|Gymshark|Outdoor Voices|Public Rec|L''urv|Adidas|Puma|Under Armour|ECHT|P\\.E\\. Nation|White Fox Active|Ryderwear|Cleo Harper|Squat Wolf|Reebok|Ivy Park|Jaggad|Lilybod|Varley|Rockwear|Spanx|Athleta|Beach Riot|FP Movement|Aerie|Torrid|CLS Sportswear|SET Active|Arisevolve|Arise Evolve)\\\\b', 'i')) matches`,
   `${col} context`,
   `'${part}' part`,
     ].concat(expressions ? expressions : [])

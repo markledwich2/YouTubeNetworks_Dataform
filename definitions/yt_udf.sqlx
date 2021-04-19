@@ -61,13 +61,15 @@ function regexMatchAll(input, pattern, flags) {
   let res = []
   let m;
   while (m = re.exec(input)) {
+    let v = m[0] || "" 
+    if(flags.includes("i"))
+      v = v.toLowerCase()
     if(m.groups)
-  		res.push(Object.assign({match: m[0]}, m.groups))
+  		res.push(Object.assign({match: v}, m.groups))
     else
-      res.push(m[0])
-    console.log(m)
+      res.push(v)
   }
-  return flags.includes("i") ? res.map(r => r.toLowerCase()) : res
+  return res
 }
 
 return regexMatchAll(INPUT, PATTERN, FLAGS)
