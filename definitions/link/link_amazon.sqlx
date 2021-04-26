@@ -1,0 +1,43 @@
+config {
+  type: "table",
+  uniqueKey:['comment_id'],
+  description:'Links to amazon that have had metadata collected'
+}
+
+with flat as (
+    select v:Title::string title
+       , v:Updated::timestamp_ntz updated
+       , v:"Url"::string url
+       , v:SourceUrl::string url_source
+       , v:error::string error
+       , v:CanonUrl::string url_cannon
+       , v:CreativeAsin::string creative_asin
+       , v:Description::string description
+       , v:ImageUrl::string image_url
+       , v:PageType::string page_type
+       , v:ProductTitle::string product
+       , v:BiLine:Txt::string by_line
+       , v:BiLine: Url::string by_line_url
+       , v:Props:ASIN::string asin
+       , v:Props:"Date First Available"::string first_available
+       , v:Props:Department::string department
+       , v:Props:"Is Discontinued By Manufacturer"::string discontinued
+       , v:Props:"Item model number"::string model_number
+       , v:Props:Manufacturer::string manufacturer
+       , v:Props:"Generic Name"::string generic_name
+       , v:Breadcrumb::array breadcumb
+       , get(breadcumb,0):Txt::string cat1
+       , get(breadcumb,1):Txt::string cat2
+       , get(breadcumb,2):Txt::string cat3
+       , get(breadcumb,3):Txt::string cat4
+       , get(breadcumb,4):Txt::string cat5
+       , get(breadcumb,5):Txt::string cat6
+       , get(breadcumb,6):Txt::string cat7
+       , get(breadcumb,7):Txt::string cat8
+       , get(breadcumb,8):Txt::string cat9
+       , get(breadcumb, array_size(breadcumb)-1):Txt::string cat_last
+  from link_meta_stage
+)
+select * from flat
+  ${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }
+    qualify row_number() over (partition by url_source order by updated desc)=1

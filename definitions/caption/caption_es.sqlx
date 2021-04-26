@@ -1,7 +1,8 @@
 config {
   type: "view",
   dependencies: ['caption', 'video_latest', 'channel_latest'],
-  tags: ["standard"]
+  tags: ["standard"],
+  description: "Prepares capton data for Elsastic Search. Recfluence queries this to incrementally update ES."
 }
 with cg as (
   select cg.video_id
