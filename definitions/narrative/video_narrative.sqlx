@@ -1,7 +1,9 @@
 config {
   type: "table",
   tags:['init', 'narrative'],
-  dependencies:['video_narrative_raw']
+  dependencies:['video_narrative_raw'],
+  description:`Mentions of supporting or disputing narratives at the video granularity.
+  NOTE: intended to be generic, but often different data and structure is appropreate and we use other tables. `
 }
 
 with q1 as (

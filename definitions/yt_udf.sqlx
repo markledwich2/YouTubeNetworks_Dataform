@@ -86,7 +86,8 @@ $$
 ---
 
 create
-or replace function public.regexMatch(input string, pattern string, flags string) returns object language javascript as
+or replace function public.regexMatch(input string, pattern string, flags string) returns object 
+language javascript as
 'function regexMatch(input, pattern, flags) {
   var res = new RegExp(pattern, flags).exec(input)
   return res ? res.groups : {};
@@ -130,7 +131,11 @@ select array_size(covidWords(input)) > 0
 $$
 
 ---
-create
-  or replace function public.arrayflatten(items array) returns array
+create  or replace function public.arrayflatten(items array) returns array
   language javascript as
-'return ITEMS ? ITEMS.reduce(function(a, b){ return a.concat(b); }) : undefined'
+'return ITEMS && ITEMS.length > 0 ? ITEMS.reduce(function(a, b){ return a.concat(b); }) : undefined'
+
+---
+create or replace function public.mergeObject(a object, b object) returns object language javascript as
+'return Object.assign({}, A, B)'
+

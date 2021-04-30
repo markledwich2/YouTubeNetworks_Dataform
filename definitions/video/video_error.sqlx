@@ -4,44 +4,46 @@ config {
   tags:['standard']
 }
 
-with video_errors as (
-  select video_id
-       , channel_id
-       , error_type
-       , copyright_holder
-       , extra_updated error_updated
-       , updated last_seen
-  from video_latest
-  where error_type is not null
-    and error_type not in ('Restricted','Not available in USA','Paywall','Device','Unknown')
-)
-   , dead_channel_vids as (
-  select v.video_id
-       , v.channel_id
-       , 'Channel Removed' error_type
-       , null copyright_holder
-       , death_recorded error_updated
-       , v.updated last_seen
-  from video_latest v
-         inner join channel_latest c on c.channel_id=v.channel_id and death_recorded is not null
-)
-   , u as (
+  with video_errors as (
+    select video_id
+         , channel_id
+         , error_type
+         , copyright_holder
+         , extra_updated error_updated
+         , updated last_seen
+    from video_latest
+    where error_type is not null
+      and error_type not in ('Restricted','Not available in USA','Paywall','Device','Unknown')
+  )
+    , dead_channel_vids as (
+    select v.video_id
+         , v.channel_id
+         , 'Channel Removed' error_type
+         , null copyright_holder
+         , death_recorded error_updated
+         , v.updated last_seen
+    from video_latest v
+           inner join channel_latest c on c.channel_id=v.channel_id and death_recorded is not null
+  )
+    , u as (
+    select *
+    from video_errors
+    union all
+    select *
+    from dead_channel_vids d
+    where not exists(select * from video_errors e where e.video_id=d.video_id)
+  )
+    , s as (
+    select u.*
+         , l.video_title
+         , c.channel_title
+         , timediff(seconds,'0'::time,l.duration) duration_secs
+         , l.views video_views
+         , l.upload_date
+         , c.platform
+    from u
+           inner join video_latest l on l.video_id=u.video_id
+           inner join channel_accepted c on u.channel_id=c.channel_id
+  )
   select *
-  from video_errors
-  union all
-  select *
-  from dead_channel_vids
-)
-, s as (
-  select u.*
-     , l.video_title
-     , c.channel_title
-     , timediff(seconds, '0'::time, l.duration) duration_secs
-     , l.views video_views
-     , l.upload_date
-     , c.platform
-from u
-       inner join video_latest l on l.video_id=u.video_id
-       inner join channel_accepted c on u.channel_id=c.channel_id
-)
-select * from s
+  from s

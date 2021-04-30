@@ -13,5 +13,6 @@ select metadata$filename as file
        , object_construct('offset_seconds', $9::int, 'caption', $13::string) captions
        , $11::string as label_raw
        , $12::string as note
+       
   from @public.yt_data/import/narratives/trans.sw_4_2.kw_matches.all_info.20201103_to_20210131.final_report.labels.clean.txt.gz (file_format => tsv_header_no_enclose)
   order by uploaded, captions:offset::int

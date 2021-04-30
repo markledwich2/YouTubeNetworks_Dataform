@@ -1,0 +1,53 @@
+config {
+  type: "table",
+  tags:['init', 'narrative'],
+  dependencies:['video_narrative_raw', 'mention_vaccine_personal'],
+  description:'Metion data intended for viz at the video granularity. `contexts` column can have different schema as need for different narratives'
+}
+
+with m_election_fraud as (
+  with q0 as (
+    select *
+         , split_part(note,'_',1)='heur' heuristic
+         , count_if(not heuristic) over (partition by video_id, label_raw) manual_label_count
+
+    from video_narrative_raw
+  )
+    , q1 as (
+    select *
+         , first_value(label_raw) over (partition by video_id order by manual_label_count desc) label
+         , first_value(note) over (partition by video_id order by manual_label_count desc) note
+    from q0
+  )
+  select video_id
+       , array_construct(keywords) keywords
+       , captions:offset_seconds::int offset_seconds
+       , captions:caption::string caption
+       , 'caption' part
+       , array_construct(label_raw) tags
+       , array_construct(label) video_tags
+       , array_construct(iff(manual_label_count >0, 'manual', 'auto')) video_tags_meta
+       , object_construct('heuristic',heuristic) extra
+  from q1
+  --where video_id='g_RrYz85E1A'
+)
+  , m_vaccine_personal as (
+  select video_id, null keywords, offset_seconds, caption, 'caption' part, null tags, null video_tags, null video_tags_meta, null extra
+  from mention_vaccine_personal
+   --where video_id = '0IahsYsHHlw'
+)
+  , u as (
+  select '2020 Election Fraud' narrative, *
+  from m_election_fraud
+  union all
+  select 'Vaccine Personal' narrative, *
+  from m_vaccine_personal
+)
+select narrative
+     , video_id
+     , arrayExclude(arrayUniq(arrayFlatten(array_agg(keywords))), array_construct('', null)) keywords
+     , arrayExclude(arrayUniq(arrayFlatten(array_agg(video_tags))), array_construct('', null)) tags
+     , arrayExclude(arrayUniq(arrayFlatten(array_agg(video_tags_meta))), array_construct('', null)) tags_meta
+     , array_agg(mergeObject(object_construct('part',part,'offset_seconds',offset_seconds,'caption',caption, 'tags', tags),extra)) captions
+from u
+group by 1, 2
