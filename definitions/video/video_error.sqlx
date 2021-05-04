@@ -1,10 +1,11 @@
 config {
   type: "table",
   dependencies: ['video_extra', 'channel_latest', 'video_latest'],
-  tags:['standard']
+  tags:['standard'],
+  uniqueKey:['video_id']
 }
 
-  with video_errors as (
+with video_errors as (
     select video_id
          , channel_id
          , error_type

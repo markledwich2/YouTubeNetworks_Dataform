@@ -120,7 +120,7 @@ create or replace function public.fromUnixTs(ts int)
 create or replace function public.covidWords(input string)
 returns array as
 $$
-select regexmatchall(input, '\\b(covid|coronavirus|SARS-CoV-2|vaccine|Wuhan flu|China virus|vaccinated|Pfizer|Moderna|BioNTech|AstraZeneca|Johnson \& Johnson|CDC|world health organization|Herd immunity)\\b', 'i')
+select regexmatchall(input, '\\b(covid|coronavirus|SARS-CoV-2|vaccine|Wuhan flu|China virus|vaccinated|Pfizer|Moderna|BioNTech|AstraZeneca|Johnson \& Johnson|CDC|world health organization|Herd immunity|corona virus|kovid|covet|coven)\\b', 'i')
 $$
 
 ---

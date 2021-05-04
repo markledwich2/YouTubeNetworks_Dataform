@@ -5,7 +5,7 @@ config {
 with raw as (
   with mentions as (
     select $1:meta m, $1 v
-    from @public.yt_data/import/narratives/covid_vaccine_personal_mentions.40sw.scores_filt_v3_07
+    from @public.yt_data/import/narratives/covid_vaccine_personal_mentions
   )
   select m:CAPTION_GROUP::int caption_group
        , m:"CHANNEL_ID"::string channel_id
