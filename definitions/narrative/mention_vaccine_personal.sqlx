@@ -2,16 +2,14 @@ config {
   type: "view"
 }
 
-with raw as (
-  with mentions as (
-    select $1:meta m, $1 v
-    from @public.yt_data/import/narratives/covid_vaccine_personal_mentions
-  )
-  select m:CAPTION_GROUP::int caption_group
-       , m:"CHANNEL_ID"::string channel_id
-       , m:"VIDEO_ID"::string video_id
-       , m:"OFFSET_SECONDS"::int offset_seconds
-       , v:"text"::string caption
-  from mentions
+with mentions as (
+  select $1:meta m, $1 v, metadata$filename file
+  from @public.yt_data/import/narratives/covid_vaccine_personal_mentions
 )
-select * from raw
+select m:CAPTION_GROUP::int caption_group
+     , m:"CHANNEL_ID"::string channel_id
+     , m:"VIDEO_ID"::string video_id
+     , m:"OFFSET_SECONDS"::int offset_seconds
+     , v:"text"::string caption
+    , file
+from mentions

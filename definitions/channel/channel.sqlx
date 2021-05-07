@@ -30,6 +30,8 @@ where
     and not (platform='BitChute' and status_msg='NotFound' and updated<='2021-02-07')
     -- Rumble id's wern't clean and didn't ahve the user/c channel prefix. remove thather than fix
     and not (platform='Rumble' and updated<='2021-02-08' )
+    ---- A bunch of Rumble channels were created based on bitchute data. Filter out
+    and not (platform='Rumble' and logo_url like 'https://static-3.bitchute.com%' and updated<='2021-05-22' )
 )
    , c1 as (
   select *, 'recfluence' as source
