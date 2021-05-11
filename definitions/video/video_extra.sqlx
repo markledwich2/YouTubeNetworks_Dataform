@@ -63,6 +63,7 @@ with video_extra_view as (
       regexp_substr(sub_error,'copyright claim by (.+?).',1,1,'e')),null) copyright_holder
   from video_extra_stage s
   where video_id is not null
+  not (v:VideoId like 'https://rumble.com/%' and v:Updated < '2021-05-10') 
 )
   , s as (
   select video_id

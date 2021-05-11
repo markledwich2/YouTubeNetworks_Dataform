@@ -4,7 +4,7 @@ config {
     tags: ["standard", 'views', 'core'],
     dependencies: ['video', 'video_extra', 'video_oldest', 'channel_latest_view'],
     snowflake: {
-      clusterBy:['video_id']
+      clusterBy:['platform', 'video_id']
     }
 }
 
