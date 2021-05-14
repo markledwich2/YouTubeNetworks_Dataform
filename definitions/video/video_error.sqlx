@@ -1,7 +1,7 @@
 config {
   type: "table",
   dependencies: ['video_extra', 'channel_latest', 'video_latest'],
-  tags:['standard'],
+  tags:['standard', 'core'],
   uniqueKey:['video_id']
 }
 
@@ -43,8 +43,8 @@ with video_errors as (
          , l.upload_date
          , c.platform
     from u
-           inner join video_latest l on l.video_id=u.video_id
-           inner join channel_accepted c on u.channel_id=c.channel_id
+           join video_latest l on l.video_id=u.video_id
+           join channel_latest c on u.channel_id=c.channel_id
   )
   select *
   from s

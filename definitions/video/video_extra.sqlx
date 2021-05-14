@@ -26,6 +26,7 @@ with video_extra_view as (
        , v:Updated::timestamp_ntz updated
        , v:Source::string source
        , v:Statistics:ViewCount::int views
+       , v:MediaUrl::string media_url
        , coalesce(v:Error,v:error)::string error
        , coalesce(v:SubError,v:subError)::string sub_error
 
@@ -62,8 +63,7 @@ with video_extra_view as (
       regexp_substr(sub_error,'content from (.+?),',1,1,'e'),
       regexp_substr(sub_error,'copyright claim by (.+?).',1,1,'e')),null) copyright_holder
   from video_extra_stage s
-  where video_id is not null
-  not (v:VideoId like 'https://rumble.com/%' and v:Updated < '2021-05-10') 
+  where video_id is not null and not (video_id like 'https://rumble.com/%' and v:Updated < '2021-05-10') 
 )
   , s as (
   select video_id
@@ -75,6 +75,7 @@ with video_extra_view as (
        , updated
        , source
        , views
+       , media_url
        , error
        , sub_error
        , error_type
