@@ -19,7 +19,8 @@ with m_election_fraud as (
          , first_value(note) over (partition by video_id order by manual_label_count desc) note
     from q0
   )
-  select video_id
+  select  '2020 Election Fraud' narrative
+        , video_id
        , array_construct(keywords) keywords
        , captions:offset_seconds::int offset_seconds
        , captions:caption::string caption
@@ -32,19 +33,45 @@ with m_election_fraud as (
   --where video_id='g_RrYz85E1A'
 )
   , m_vaccine_personal as (
-  select video_id, null keywords, offset_seconds, caption, 'caption' part, null tags, null video_tags, null video_tags_meta, null extra
-  from mention_vaccine_personal
-  --where video_id = 'NJpB-FlSDEA'
-  qualify row_number() over (partition by video_id, offset_seconds order by length(caption) desc) = 1 -- remove what looks like duplicates
-)
+    with mentions_json as (
+      select $1:meta m, $1 v, metadata$filename file
+      from @public.yt_data/import/narratives/covid_vaccine_personal_mentions
+    )
+    , raw as (
+          select m:CAPTION_GROUP::int caption_group
+          , m:"CHANNEL_ID"::string channel_id
+          , m:"VIDEO_ID"::string video_id
+          , m:"OFFSET_SECONDS"::double  offset_seconds
+          , v:"text"::string caption
+          , file
+        from mentions_json
+    )
+    select 'Vaccine Personal' narrative, video_id, null keywords, offset_seconds, caption, 'caption' part, null tags, null video_tags, null video_tags_meta, null extra
+    from raw
+    --where video_id = 'NJpB-FlSDEA'
+    qualify row_number() over (partition by video_id, offset_seconds order by length(caption) desc) = 1 -- remove what looks like duplicates
+  )
+   , m_vaccine_dna as (
+     with mentions_json as (
+        select $1 v, metadata$filename file
+        from @public.yt_data/import/narratives/covid_vaccine_dna_mod.final_pos_preds.jsonl.gz
+      )
+     , raw as (
+             select v:CHANNEL_ID::string channel_id, v:VIDEO_ID::string video_id, v:OFFSET_SECONDS::double  offset_seconds, v:CAPTION::string caption, v:CAPTION_SHORT caption_short
+      from mentions_json
+     )
+      select 'Vaccine DNA' narrative,  video_id, null keywords, offset_seconds, caption_short caption, 'caption' part, null tags, null video_tags, null video_tags_meta, null extra
+     from raw
+    )
   , u as (
-  select '2020 Election Fraud' narrative, *
-  from m_election_fraud
+  select *  from m_election_fraud
   union all
-  select 'Vaccine Personal' narrative, *
-  from m_vaccine_personal
+  select *  from m_vaccine_personal
+  union all
+  select * from m_vaccine_dna
 )
-select narrative
+, s as (
+  select narrative
      , video_id
      , arrayExclude(arrayUniq(arrayFlatten(array_agg(keywords))), array_construct('', null)) keywords
      , arrayExclude(arrayUniq(arrayFlatten(array_agg(video_tags))), array_construct('', null)) tags
@@ -52,3 +79,5 @@ select narrative
      , array_agg(mergeObject(object_construct('part',part,'offset_seconds',offset_seconds,'caption',caption, 'tags', tags),extra)) captions
 from u
 group by 1, 2
+)
+select * from s

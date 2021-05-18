@@ -13,6 +13,7 @@ with latest as (
   select v:Updated::timestamp_ntz as updated
        , v:VideoId::string as video_id
        , v:Captions::array as captions
+       , v:Pl
   from caption_stage s
   --where video_id = 'aOrReUlgAa8'
   ${ when(incremental(), ` where v:Updated > (SELECT MAX(updated)::string FROM ${self()})`) }
@@ -31,7 +32,7 @@ with latest as (
        , max(updated) as updated
        , listagg(caption, '\n') within group ( order by offset_seconds asc ) as caption
        , min(offset_seconds) as offset_seconds
-       , floor(caption_no/20) as caption_group
+       ,  floor(caption_no/20) as caption_group
   from flattened
   group by video_id
          , caption_group
