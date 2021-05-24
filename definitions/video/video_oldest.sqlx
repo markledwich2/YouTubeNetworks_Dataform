@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   dependencies: ['video_stage_view'],
-  uniqueKey: ['video_id']
+  uniqueKey: ['video_id'],
+  tags: ['standard']
 }
 
 -- the oldest video record with a non-null upload date

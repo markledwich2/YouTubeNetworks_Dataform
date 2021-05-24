@@ -13,7 +13,11 @@ with video_stage_view_incremental as (
   select s.*
   from video_stage_view s
  -- where s.video_id='bJEp9caeIbI'
-  ${ when(incremental(), `left join video_extra e on e.video_id = s.video_id where s.updated > (select max(updated) from video_latest) OR e.updated > (select max(extra_updated) from video_latest)` )}
+  ${ when(incremental(), `left join video_extra e on e.video_id = s.video_id 
+  where 
+  s.updated > (select max(updated) from video_latest)
+  or e.updated > (select max(extra_updated) from video_latest)
+  ` )}
 )
   , latest as (
   select *
