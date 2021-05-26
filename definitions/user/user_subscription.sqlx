@@ -1,0 +1,11 @@
+config {
+  type: "incremental",
+  uniqueKey: ['user_id', 'channel_id'],
+  tags:['standard'],
+  description:'materializes user subscriptions to make joining faster'
+}
+
+select u.user_id, s.value:Id::string channel_id, u.updated
+from user u
+   , table(flatten(subscriptions)) s
+${ when(incremental(), `where updated > (SELECT MAX(updated) FROM ${self()})`) }

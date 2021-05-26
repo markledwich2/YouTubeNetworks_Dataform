@@ -22,6 +22,7 @@ select v:ChannelId::string channel_id
      , v:FeaturedChannelIds::array featured_channels
      , v:Description::string description
      , v:DiscoverSource::object discover_source
+     , v:SourceIdAlts::array source_id_alts
 from channel_stage
 where 
     -- Filter out errors. For a day orso, YT collector picked up other platforms and created dead YouTube channels for them
@@ -53,6 +54,7 @@ where
         , null as featured_channels
         , null as description
         , null as discover_source
+        , null::array as source_id_alts
         , 'sam_export' as source
    from channel_sam_import
    where not exists(select * from cstage where cstage.channel_id=channel_sam_import.channel_id))
