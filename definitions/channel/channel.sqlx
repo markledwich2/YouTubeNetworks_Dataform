@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags: ["standard", 'core'],
+  tags: ["standard", 'core', 'channel'],
   dependencies: ['video_latest', 'channel_review', 'channel_sam_import' ],
   uniqueKey:['channel_id', 'updated']
 }
@@ -15,6 +15,7 @@ select v:ChannelId::string channel_id
      , v:ChannelViews::int channel_views
      , v:Country::string country
      , v:Updated::timestamp_ntz updated
+     , v:Status::string status
      , decode(v:Status::string, '1', 'Alive', coalesce(v:Status::string, 'Unknown')) status_msg
      , v:"Subscriptions"::array subscriptions
      , v:Keywords::string keywords
@@ -47,6 +48,7 @@ where
         , null as channel_views
         , null as country
         , '2020-09-01'::timestamp_ntz as updated
+        , null as status
         , null as status_msg
         , null as subscriptions
         , null as keywords

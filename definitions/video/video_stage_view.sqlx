@@ -19,7 +19,8 @@ config {
        , v:Statistics:LikeCount::int as likes
        , v:Statistics:DislikeCount::int as dislikes
        , v:Description::string as description
-       , v:Source::object as source
+       , v:DiscoverSource::object as discover_source
+       , v:Source::string as source
        , try_to_time(v:Duration::string) as duration
        , v:Keywords::array as keywords
        , v:Tags::object as tags
@@ -32,5 +33,6 @@ not (
   and (
     updated<='2021-02-08' 
     or (updated<='2021-02-12' and source='Web')
+    or (updated::date = '2021-05-26' and source = '{"Type":"Home"}' ) -- channeL-id's were wrong this update
   )
 )
