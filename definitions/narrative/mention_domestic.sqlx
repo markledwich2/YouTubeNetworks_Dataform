@@ -1,0 +1,49 @@
+config {
+  type: "table",
+  dependencies: ['video_latest', 'caption'],
+  description: `Mentions of popular q terms to classsify into sub-narratives`
+}
+
+js {
+  function select_context(terms, table, col, part, expressions) {
+    part = part || col
+    var allExpressions = [
+      'video_id', 
+      `arrayuniq(regexmatchall(${col}, '\\\\b(${terms.join('|')})\\\\b', 'i')) matches`,
+      `${col} context`,
+      `'${part}' part`
+      ].concat(expressions ? expressions : [])
+    return `select ${allExpressions.join(',\n  ')} from ${table} where array_size(matches)>0`
+  }
+
+  function mentions(terms, video_table) {
+    video_table = video_table || video_latest
+    return `
+(
+  with cap as (
+    select s.video_id, s.caption, offset_seconds from caption2 s
+    join ${video_table} v on v.video_id = s.video_id -- filter via vid table
+  )
+  ${select_context(terms, 'cap', 'caption', null, ['offset_seconds::int offset_seconds'])}
+)
+union all
+${select_context(terms, video_table, 'video_title', 'title', ['null offset_seconds'])}
+union all
+${select_context(terms, video_table, 'description', null, ['null offset_seconds'])}
+union all
+(
+  with kw as (
+    select video_id, video_title, k.value::string keyword
+    from video_latest, lateral flatten(input => keywords) k
+  )
+  ${select_context(terms, 'kw', 'keyword', null, ['null offset_seconds'])}
+)
+`
+  }
+}
+
+with alt as (
+  select video_id, video_title, v.description 
+  from video_latest v join channel_latest c on c.channel_id = v.channel_id
+)
+${mentions(['great reset', 'jfk', 'arizona recount', 'quo warranto', 'Maricopa', 'WWG1WGA', 'qanon', 'the storm', 'great awakening', 'trust the plan', 'dark to light', 'future proves past', 'disinformation is necessary', 'the military is the only way', 'we are the news', 'save the children', 'Pizzagate', 'Seth Rich'], 'alt')}

@@ -10,31 +10,40 @@ config {
 }
 
 with latest as (
-  select v:Updated::timestamp_ntz as updated
-       , v:VideoId::string as video_id
-       , v:Captions::array as captions
-       , v:Pl
+  select v:Updated::timestamp_ntz updated
+       , v:VideoId::string video_id
+       , v:Captions::array captions
   from caption_stage s
-  --where video_id = 'aOrReUlgAa8'
-  ${ when(incremental(), ` where v:Updated > (SELECT MAX(updated)::string FROM ${self()})`) }
-  qualify row_number() over (partition by video_id order by updated desc) = 1
+    -- and video_id in ('BitChute|U5C9O7eegUOT', '4Kj8UPnZfPc', 'zTJa_SwHcTE')
+    ${ when(incremental(), ` and v:Updated > (SELECT MAX(updated)::string FROM ${self()})`) }
+    qualify row_number() over (partition by video_id order by updated desc)=1
 )
-   , flattened as (
-  select *
-       , t.value: Text::string as caption
-       , timespantoseconds(t.value: Offset) as offset_seconds
-       , row_number() over (partition by video_id order by offset_seconds) as caption_no
-  from latest
-     , lateral flatten(input => captions) t
+  , flattened as (
+  with f1 as (
+    select l.*
+         , t.value:"Text"::string caption
+         , object_delete(t.value,'Text','Offset','Duration') extra --captions are too heavy to change schema frequently. use objects for optional.new
+         , t.value:"Speaker"::string speaker
+         , timespantoseconds(t.value:"Offset") offset_seconds
+         , timespantoseconds(t.value:"Duration") duration_seconds
+         , row_number() over (partition by l.video_id order by offset_seconds) caption_no
+         , iff(v.platform='YouTube',floor(caption_no/10),caption_no) caption_group
+    from latest l
+           join video_latest v on v.video_id=l.video_id
+      , lateral flatten(input => captions) t
+  )
+    , f2 as (
+    select *, first_value(extra) over (partition by video_id, caption_group order by offset_seconds) extra_group from f1
+  )
+  select f.video_id
+       , f.caption_group
+       , max(f.updated) updated
+       , any_value(extra_group) extra
+       , listagg(caption,'\n') within group ( order by offset_seconds) caption
+       , min(offset_seconds) offset_seconds
+        , sum(duration_seconds) duration_seconds
+  from f2 f
+  group by 1, 2
 )
-   , cg as (
-  select video_id
-       , max(updated) as updated
-       , listagg(caption, '\n') within group ( order by offset_seconds asc ) as caption
-       , min(offset_seconds) as offset_seconds
-       ,  floor(caption_no/20) as caption_group
-  from flattened
-  group by video_id
-         , caption_group
-)
-select * from cg
+select *
+from flattened

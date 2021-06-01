@@ -4,11 +4,11 @@ config {
 }
 
 js {
-  function select_context(table, col, part, expressions) {
+  function select_context(terms, table, col, part, expressions) {
     part = part || col
     var allExpressions = [
       'video_id', 
-      `arrayuniq(regexmatchall(${col}, '\\\\b(lululemon|Lorna Jane|Alo Yoga|Vuori|Nike|YogaOutlet|Fabletics|Gymshark|Outdoor Voices|Public Rec|L''urv|Adidas|Puma|Under Armour|ECHT|P\\.E\\. Nation|White Fox Active|Ryderwear|Cleo Harper|Squat Wolf|Reebok|Ivy Park|Jaggad|Lilybod|Varley|Rockwear|Spanx|Athleta|Beach Riot|FP Movement|Aerie|Torrid|CLS Sportswear|SET Active|Arisevolve|Arise Evolve)\\\\b', 'i')) matches`,
+      `arrayuniq(regexmatchall(${col}, '\\\\b(${terms.join('|')})\\\\b', 'i')) matches`,
   `${col} context`,
   `'${part}' part`,
     ].concat(expressions ? expressions : [])
@@ -17,10 +17,16 @@ js {
 ${allExpressions.join(',\n  ')}
 from ${table} where array_size(matches)>0`
   }
+
+  function mentions(terms) {
+    return `
+${select_context(terms, 'caption', 'caption', null, ['offset_seconds::int offset_seconds'])}
+union all
+${select_context(terms, 'video_latest', 'video_title', 'title', ['null offset_seconds'])}
+union all
+${select_context(terms, 'video_latest', 'description', null, ['null offset_seconds'])}
+      `
+    }
 }
 
-${select_context('caption', 'caption', null, ['offset_seconds::int offset_seconds'])}
-union all
-${select_context('video_latest', 'video_title', 'title', ['null offset_seconds'])}
-union all
-${select_context('video_latest', 'description', null, ['null offset_seconds'])}
+${mentions(['lululemon', 'Lorna Jane', 'Alo Yoga', 'Vuori', 'Nike', 'YogaOutlet', 'Fabletics', 'Gymshark', 'Outdoor Voices', 'Public Rec', 'Adidas', 'Puma', 'Under Armour', 'ECHT', 'P\\.E\\. Nation', 'White Fox Active', 'Ryderwear', 'Cleo Harper', 'Squat Wolf', 'Reebok', 'Ivy Park', 'Jaggad', 'Lilybod', 'Varley', 'Rockwear', 'Spanx', 'Athleta', 'Beach Riot', 'FP Movement', 'Aerie', 'Torrid', 'CLS Sportswear', 'SET Active', 'Arisevolve', 'Arise Evolve'])}
