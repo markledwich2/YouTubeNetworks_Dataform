@@ -5,15 +5,20 @@ config {
 }
 
 js {
+  const termSql = (col, terms) => `arrayuniq(arrayLower(arrayReplace(regexmatchall(${col}, ${`'\\b(${
+      terms.map(t => t.replace(/'/g, "''").replace(' ', '\\s*')).join('|')
+    })\\b'`.replace(/\\/g, '\\\\')}, 'i'), '\\\\s+', '', '')))`
+
+
   function select_context(terms, table, col, part, expressions) {
     part = part || col
     var allExpressions = [
       'video_id', 
-      `arrayuniq(regexmatchall(${col}, '\\\\b(${terms.join('|')})\\\\b', 'i')) matches`,
+      `${termSql(col, terms)} matches`,
       `${col} context`,
       `'${part}' part`
       ].concat(expressions ? expressions : [])
-    return `select ${allExpressions.join(',\n  ')} from ${table} where array_size(matches)>0`
+    return `select ${allExpressions.join(',\n  ')} from ${table} where matches is not null and array_size(matches)>0`
   }
 
   function mentions(terms, video_table) {
@@ -21,7 +26,7 @@ js {
     return `
 (
   with cap as (
-    select s.video_id, s.caption, offset_seconds from caption2 s
+    select s.video_id, s.caption, offset_seconds from caption s
     join ${video_table} v on v.video_id = s.video_id -- filter via vid table
   )
   ${select_context(terms, 'cap', 'caption', null, ['offset_seconds::int offset_seconds'])}
@@ -40,10 +45,27 @@ union all
 )
 `
   }
+
+  const arraySql = (arr) => `array_construct(${arr.map(a => `'${a.replace(/'/g, "\\'")}'`).join(', ')})`
+
+  const dfr_terms = ['wwg1wga','the storm','great awakening','trust the plan','dark to light','future proves past',
+    'disinformation is necessary','the military is the only way','we are the news',
+    'save the children','pizzagate', 'pizza gate', 'Seth Rich',`there's q and there's anons`]
+
+  const terms_extra = ['great reset', 'jfk', 'arizona recount', 'quo warranto', 'Maricopa', 'qanon', 'q drop', 'Seth Rich', 
+    `there's Q and`, `Marjorie Taylor Greene`, 'deep state', 'stop the steal', 'plandemic', 'cabal', 'puppet', 'soul family', 'patriots?', 'prayer warriors']
 }
 
-with alt as (
+with vids as (
   select video_id, video_title, v.description 
   from video_latest v join channel_latest c on c.channel_id = v.channel_id
+  where upload_date > '2020-01-01' --and array_contains('QAnon'::variant, tags)
 )
-${mentions(['great reset', 'jfk', 'arizona recount', 'quo warranto', 'Maricopa', 'WWG1WGA', 'qanon', 'the storm', 'great awakening', 'trust the plan', 'dark to light', 'future proves past', 'disinformation is necessary', 'the military is the only way', 'we are the news', 'save the children', 'Pizzagate', 'Seth Rich'], 'alt')}
+, mentions as (
+  ${mentions(dfr_terms.concat(terms_extra), 'vids')}
+)
+select *, 
+  array_intersection(matches,${arraySql(dfr_terms.map(t => t.replace(/ /g, '')))}) matches_dfr
+  
+ from mentions
+

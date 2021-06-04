@@ -35,6 +35,26 @@ return ITEMS ? ITEMS.filter(v => !EXCLUDE.includes(v)) : undefined
 ---
 
 CREATE
+OR REPLACE FUNCTION public.arrayLower(items array) RETURNS array LANGUAGE JAVASCRIPT AS
+'
+return ITEMS ? ITEMS.map(v => v && v.toLowerCase()) : undefined
+'
+
+---
+CREATE
+OR REPLACE FUNCTION public.arrayReplace(items array, pattern string, flags string, replacement string) RETURNS array LANGUAGE JAVASCRIPT AS
+$$
+function arrayReplace(arr, pattern, flags, replacement) {
+  if(!arr) return undefined
+  let re = new RegExp(pattern, flags ? flags + "g" : "g")
+ 	return arr.map(a => a.replace(re, replacement))
+}
+return arrayReplace(ITEMS, PATTERN, FLAGS, REPLACEMENT)
+$$
+
+---
+
+CREATE
 OR REPLACE FUNCTION public.arrayJoin(
   items array,
   param object,

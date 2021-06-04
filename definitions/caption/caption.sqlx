@@ -1,36 +1,30 @@
 config {
-  type: "incremental",
+  type: 'incremental',
   uniqueKey: ['video_id', 'caption_group'],
   tags:['standard', 'core'],
-  dependencies:["yt_udf", "channel_latest", "channel_accepted"],
+  dependencies:['yt_udf', 'caption_video', 'video_latest'],
   description:'Channel data from all platforms',
   snowflake: {
      clusterBy:['video_id']
   }
 }
 
-with latest as (
-  select v:Updated::timestamp_ntz updated
-       , v:VideoId::string video_id
-       , v:Captions::array captions
-  from caption_stage s
-    -- and video_id in ('BitChute|U5C9O7eegUOT', '4Kj8UPnZfPc', 'zTJa_SwHcTE')
-    ${ when(incremental(), ` and v:Updated > (SELECT MAX(updated)::string FROM ${self()})`) }
-    qualify row_number() over (partition by video_id order by updated desc)=1
-)
-  , flattened as (
+with flattened as (
   with f1 as (
-    select l.*
+    select l.video_id
+         , l.updated
          , t.value:"Text"::string caption
          , object_delete(t.value,'Text','Offset','Duration') extra --captions are too heavy to change schema frequently. use objects for optional.new
-         , t.value:"Speaker"::string speaker
          , timespantoseconds(t.value:"Offset") offset_seconds
          , timespantoseconds(t.value:"Duration") duration_seconds
          , row_number() over (partition by l.video_id order by offset_seconds) caption_no
-         , iff(v.platform='YouTube',floor(caption_no/10),caption_no) caption_group
-    from latest l
+         -- aws transcriptions have good original groupings. It's only youtube that we group captions together
+         , iff(v.platform='YouTube',floor(caption_no/10),caption_no) caption_group 
+    from caption_video l
            join video_latest v on v.video_id=l.video_id
       , lateral flatten(input => captions) t
+   ${ when(incremental(), ` where l.updated > (SELECT MAX(updated)::string FROM ${self()})`) }
+   -- where l.updated > '2021-05-30'
   )
     , f2 as (
     select *, first_value(extra) over (partition by video_id, caption_group order by offset_seconds) extra_group from f1
@@ -40,8 +34,8 @@ with latest as (
        , max(f.updated) updated
        , any_value(extra_group) extra
        , listagg(caption,'\n') within group ( order by offset_seconds) caption
-       , min(offset_seconds) offset_seconds
-        , sum(duration_seconds) duration_seconds
+       , min(offset_seconds)::int offset_seconds
+      , sum(duration_seconds) duration_seconds
   from f2 f
   group by 1, 2
 )
