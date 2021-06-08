@@ -27,6 +27,7 @@ with video_extra_view as (
        , v:Source::string source
        , v:Statistics:ViewCount::int views
        , v:MediaUrl::string media_url
+       , v:Thumb::string thumb
        , coalesce(v:Error,v:error)::string error
        , coalesce(v:SubError,v:subError)::string sub_error
 
@@ -76,6 +77,7 @@ with video_extra_view as (
        , source
        , views
        , media_url
+       , thumb
        , error
        , sub_error
        , error_type
