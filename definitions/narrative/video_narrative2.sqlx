@@ -64,18 +64,19 @@ with m_election_fraud as (
      from raw
     )
     , m_qanon as (
-        select 'QAnon' narrative
+  select 'QAnon' narrative
        , v.video_id
-       , null keywords
-       , null offset_seconds
-       , null caption
-       , null part
-       , null tags
+       , m.matches keywords
+       , m.offset_seconds
+       , m.context caption
+       , m.part
+       , m.matches tags
        , null video_tags
        , null video_tags_meta
        , null extra
   from video_latest v
          join channel_latest c on c.channel_id=v.channel_id
+        left join mention_domestic m on m.video_id = v.video_id
   where array_contains('QAnon'::variant,tags)
     and upload_date>='2019-01-01'
     )

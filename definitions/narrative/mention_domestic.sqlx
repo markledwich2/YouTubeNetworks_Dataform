@@ -5,10 +5,17 @@ config {
 }
 
 js {
-  const termSql = (col, terms) => `arrayuniq(arrayLower(arrayReplace(regexmatchall(${col}, ${`'\\b(${
-      terms.map(t => t.replace(/'/g, "''").replace(' ', '\\s*')).join('|')
+  const termSql = (col, terms) => {
+    const termExpression = terms.filter((t) => Array.isArray(t))
+    const termStrings = terms.filter((t) => !Array.isArray(t))
+
+    const termESql = `array_compact(array_construct(${termExpression.map(([t, e]) => `iff(${e(col)}, '${t}', null)`)}))`
+    const termSSql = `arrayuniq(arrayLower(arrayReplace(regexmatchall(${col}, ${`'\\b(${
+      termStrings.map(t => t.replace(/'/g, "''").replace(' ', '\\s*')).join('|')
     })\\b'`.replace(/\\/g, '\\\\')}, 'i'), '\\\\s+', '', '')))`
 
+    return `array_cat(${termESql}, ${termSSql})`
+  }
 
   function select_context(terms, table, col, part, expressions) {
     part = part || col
@@ -52,10 +59,15 @@ union all
     'disinformation is necessary','the military is the only way','we are the news',
     'save the children','pizzagate', 'pizza gate', 'Seth Rich',`there's q and there's anons`]
 
+
+  // terms is an array of string terms. Or a tuple that returns a tuple in the form: [<name to use as the match>, a function returning a boolean extpression given the name of a column]
+
   const terms_extra = ['great reset', 'jfk', 'arizona recount', 'quo warranto', 'maricopa', 'qanon', 'q drop', 'Seth Rich', 
      'deep state', 'stop the steal', 'plandemic', 'cabal', 'puppet', 'soul family',
      'patriots?', 'prayer warriors', 'we the people', 'satanic ritual abuse', 'podesta', 'adrenochrome', 'pedophile ring', 
-     'spirit cooking', 'child sex trafficking', 'mass arrests']
+     'spirit cooking', 'child sex trafficking', 'mass arrests', ['trump reinstatement', c => `${c} like all ('%trump%', '%reinstate%') or ${c} like all ('%trump%', '%august%')`]]
+
+
 }
 
 with vids as (

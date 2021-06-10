@@ -15,5 +15,5 @@ select v:Updated::timestamp_ntz updated
       , v:Captions::array captions
       , v:"Info"::object md
 from caption_stage
-qualify row_number() over (partition by video_id order by updated desc)=1
 ${ when(incremental(), `where v:Updated  > (SELECT MAX(updated) FROM ${self()})::string`) }
+qualify row_number() over (partition by video_id order by updated desc)=1
