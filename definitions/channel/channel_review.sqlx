@@ -1,7 +1,7 @@
 config {
     type:'table',
     tags:["standard", "review"],
-    dependencies: ['channel_review_sam'] // we depend on link_review, but this depends on existing reviewa. It's something we want to refresh manually so not an issue it isn't listed as dependency
+    dependencies: ['channel_review_sam'], // we depend on link_review, but this depends on existing reviewa. It's something we want to refresh manually so not an issue it isn't listed as dependency
     description:`Reviews from chan2vec and humans at channel granularity.
     
     NOTE: 
