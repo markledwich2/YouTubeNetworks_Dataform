@@ -1,7 +1,8 @@
 config { 
     type: 'view',
     dependencies: ['video_stats_daily', 'channel_accepted_process', 'video_latest'],
-    tags: ['standard']
+    tags: ['standard'],
+    description: `Video views by month. Simply aggregates *video_stats_daily* by month`
 }
 
 with vm as (

@@ -1,6 +1,10 @@
 config {
   type: "view",
-  dependencies:['video_stats_daily', 'channel_accepted']
+  dependencies:['video_stats_daily', 'channel_accepted'],
+  description:`Recommendations with portion of impressions for each day. 
+  Note:
+  - this is a v big view, you will want to filter/aggregate it to do anything with it.
+  `
 }
 
   select from_video_id

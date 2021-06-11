@@ -4,7 +4,8 @@ config {
   tags:['standard', 'entity'],
   snowflake: {
      clusterBy:['part', 'entity_type', 'entity_value']
-  }
+  },
+  description:'Named entity data for videos. Each entity type/value combo has the time offset and location of the entity'
 }
 
 with entity as (

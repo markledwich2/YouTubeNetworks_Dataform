@@ -2,7 +2,12 @@ config {
   type: "incremental",
   tags: ["standard", "views", 'core'],
   dependencies: ["video_stage_view"],
-  uniqueKey:['video_id', 'updated']
+  uniqueKey:['video_id', 'updated'],
+  description:`Video record to show views over time (i.e. multiple records for the same video).
+  
+  Note:
+  - video_stage contains much more properties than used here (i.e. all info that is show on a list of videos from the source). This is used by video_latest, and for performance reasons non-latest records should be pruned periodically (see video_stage_trim.sqlx) of the reduntant properties. 
+   `
 }
 
 select video_id

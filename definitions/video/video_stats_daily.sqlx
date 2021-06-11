@@ -3,6 +3,11 @@ config {
     uniqueKey: ['video_id', 'date'],
     tags: ['standard', 'views'],
     dependencies: ['video', 'channel_accepted_process', 'video_latest', 'date', 'video_watch_time', 'video_views_raw'],
+    description:`View stats for video for each day. 
+    NOTE:
+    - We have very hetrogenious data on historical view stats for videos, this query creates rows for each video*day combo where there were some views. This allows simple aggreagation by anything you can link a video/day to. Nice but big/slow.
+    - This should be changed to group *delta* CTE by video & create an array of day-views. Then use a javascript udf to estimate/generaye daily views into another array, then use SQL to make that per-row. This will keep the calulation simple, with less rows, and no cartensain join to a date dimension.
+    `,
     snowflake: {
       clusterBy:['date', 'channel_id']
     }

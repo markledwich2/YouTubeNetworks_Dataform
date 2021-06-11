@@ -3,6 +3,10 @@ config {
     uniqueKey: ['video_id'],
     tags: ["standard", 'views', 'core'],
     dependencies: ['video', 'video_extra', 'video_oldest', 'channel_latest_view'],
+    description:`Video information sourced from both video & video_extra. 
+    Note:
+     - Columns that exist in both tables will have their value from the latest record in the *video* table, with video_extra as a fallback. One exception is *upload_date* which will use *video_extra* first (latest is unrelyable for YouTube) and fall back to the earliest from *video*.
+    `,
     snowflake: {
       clusterBy:['platform', 'video_id']
     }

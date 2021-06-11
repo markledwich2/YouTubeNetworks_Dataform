@@ -2,7 +2,8 @@ config {
   type: "incremental",
   tags: ['standard', 'views'],
   dependencies: ['video', 'channel_accepted_process', 'video_latest'],
-  uniqueKey:['video_id', 'updated']
+  uniqueKey:['video_id', 'updated'],
+  description:`All video view records. Intermediate table, mateiralized for performance to be used by *video_stats_daily*`
 }
 
 with

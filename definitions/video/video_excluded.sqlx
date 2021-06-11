@@ -1,7 +1,8 @@
 config {
   type: "table",
   dependencies:['video_latest'],
-  tags:['standard']
+  tags:['standard'],
+  description:`A list of video's to exclude from the ttube webstie. When launched, we did't want the most popular videos to be obivously non-political, but this has not been mantained since. `
 }
 
 select  video_id, video_title, channel_id, channel_title

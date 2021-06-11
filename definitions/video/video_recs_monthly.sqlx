@@ -2,7 +2,8 @@ config {
     type:'incremental',
     tags:['standard'],
     uniqueKey: ['from_video_id', 'to_video_id', 'rec_month'],
-    dependencies: ['video_stats_monthly', 'rec', 'video_latest', 'channel_accepted', 'date']
+    dependencies: ['video_stats_monthly', 'rec', 'video_latest', 'channel_accepted', 'date'],
+    description:'Recommendations between videos with monthly impression portions'
 }
 
 with vr as (

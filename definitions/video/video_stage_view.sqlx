@@ -1,6 +1,7 @@
 config {
   type: "view",
-  dependencies:[]
+  dependencies:[],
+  description: `Structures and filters bad-data from video_stage`
 }
 
  select v:VideoId::string as video_id

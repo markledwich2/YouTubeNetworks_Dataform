@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  description: `Provides named entity structure on video_entity_stage`
 }
 
 select v:videoId::string video_id

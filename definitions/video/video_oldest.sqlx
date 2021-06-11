@@ -2,10 +2,11 @@ config {
   type: "incremental",
   dependencies: ['video_stage_view'],
   uniqueKey: ['video_id'],
-  tags: ['standard']
+  tags: ['standard'],
+  description: 'Oldest video record with a non-null upload date. Used by video_latest for claculating upload date when a video_extra record is missing. A seperate table rather than inside the video_latest query for performance reasons.'
 }
 
--- the oldest video record with a non-null upload date
+-- 
 with
   -- returns the oldest video deets just from the new rows when incrmental. Otherwise its the actual oldest
   oldest_batch as (

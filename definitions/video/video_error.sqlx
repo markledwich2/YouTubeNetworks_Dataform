@@ -2,7 +2,10 @@ config {
   type: "table",
   dependencies: ['video_extra', 'channel_latest', 'video_latest'],
   tags:['standard', 'core'],
-  uniqueKey:['video_id']
+  uniqueKey:['video_id'],
+  description:`Video's with errors. Contains details about the error and when the video was last seen. Error source from *video_extra* (has any video's with errors ) and *channel_latest*. 
+  Note:
+  - often video_extra is used to get error informaiton. But this table when you want to include all videos from channels that have been removed.`
 }
 
 with video_errors as (

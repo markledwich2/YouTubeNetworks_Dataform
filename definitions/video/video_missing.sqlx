@@ -1,6 +1,7 @@
 config {
   type: "view",
   dependencies: ['video_latest', 'channel_latest', 'video', 'channel_accepted'],
+  description: `[Deprecated]. Detects potential missing videos. No longer used, as part of the daily update expected videos are queried so that missing videos are detected immediately. See  YtReader/SimpleCollect/CollectDb.cs/VideosForUpdate.`
 }
 
 -- no longer used in daily update. Usefull for double checking tho
