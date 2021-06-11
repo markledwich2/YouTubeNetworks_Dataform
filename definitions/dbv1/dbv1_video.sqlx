@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags: ["standard"],
-  dependencies: []
+  dependencies: [],
+  description: `Video data. This is the v1 schema, so it's transformed here into the new schema to be easily combined`
 }
 
 -- don't incremental, but make sure this is created on a fresh instance with the same schema

@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags: ["standard"],
-  dependencies: ["video_latest"]
+  dependencies: ["video_latest"],
+  description: `Recommendations. This is the v1 schema, so it's transformed here into the new schema to be easily combined`
 }
 
 with
