@@ -2,9 +2,9 @@ config {
   type: "table",
   tags: ['standard', 'review', 'core', 'channel'],
   uniqueKey:['channel_id'],
-  dependencies:['channel', 'channel_review', 'video_latest']
+  dependencies:['channel', 'channel_review', 'video_latest'],
+  description:`The latest row of channel information`
 }
-
 
 with cv as (
   select channel_id
@@ -26,10 +26,6 @@ with cv as (
   from channel
     qualify row_number() over (partition by channel_id order by updated desc)=1
 )
---    , latest_names as (
---   select channel_id, channel_title
---   from latest
--- )
    , dead_dates as (
   select *
   from (
@@ -110,8 +106,6 @@ with cv as (
        end url
       , t.topics
   from latest c
---          left join latest_names mc
---                    on c.main_channel_id=mc.channel_id
          left join cv on c.channel_id=cv.channel_id
          left join channel_review cr on c.channel_id=cr.channel_id
          left join dead_dates d on d.channel_id=c.channel_id

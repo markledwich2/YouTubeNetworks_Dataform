@@ -1,7 +1,8 @@
 config {
   type: "table",
   tags:['standard'],
-  dependencies:['video_stats_daily', 'channel_accepted']
+  dependencies:['video_stats_daily', 'channel_accepted'],
+  description: 'Historical top videos for a ttube viz'
 }
 
 with vd_filtered as (

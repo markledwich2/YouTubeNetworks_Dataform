@@ -1,7 +1,8 @@
 config {
   type: "table",
   tags: ['standard', 'views'],
-  dependencies: ['video_stats_daily', 'channel_views_daily']
+  dependencies: ['video_stats_daily', 'channel_views_daily'],
+  description: `Channel views by month. Aggregate of *video_stats_daily*. Also joins to *socialblade* and *channel_views_daily* for comparison `
 }
 
 with socialblade as (

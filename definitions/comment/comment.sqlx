@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags:['standard'],
-  uniqueKey:['comment_id']
+  uniqueKey:['comment_id'],
+  description:'A comment/reply on a video'
 }
 
 with comment_view as (

@@ -1,7 +1,8 @@
 config {
   type: "table",
   dependencies: ['channel', 'date'],
-  tags:['standard', 'views']
+  tags:['standard', 'views'],
+  description: `Views stats for a channel by day. This is sourced from *channel*. i.e. not video views, but recorded views on the channel itself.`
 }
 
 with delta as (

@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags:['standard'],
-  uniqueKey:['user_id']
+  uniqueKey:['user_id'],
+  description: 'User information. Currently collect from people who comment on YouTube/BitChute videos'
 }
 
 with user_view as (

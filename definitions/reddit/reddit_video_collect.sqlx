@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  description: 'List of covid related reddit-linked videos for collection'
 }
 
 with links as (

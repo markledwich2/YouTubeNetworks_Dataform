@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  description: 'Social media posts. Currently a small portion of covid related posts on reddit, nd a dump of parler data from Jan 2021.'
 }
 
 -- common post structure

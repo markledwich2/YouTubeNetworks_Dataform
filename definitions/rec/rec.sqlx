@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags:["standard"],
-  dependencies:["channel_latest", "dbv1_rec", "us_rec" ]
+  dependencies:["channel_latest", "dbv1_rec", "us_rec" ],
+  description:'Recommendations between videos'
 }
 
 with v2_flat as (

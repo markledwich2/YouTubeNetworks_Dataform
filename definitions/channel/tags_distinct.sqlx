@@ -1,6 +1,7 @@
 config {
   type: "view",
-  dependencies:['channel_review']
+  dependencies:['channel_review'],
+  description:`Distinct values for channel tag`
 }
 
 select distinct f.value::string as tag

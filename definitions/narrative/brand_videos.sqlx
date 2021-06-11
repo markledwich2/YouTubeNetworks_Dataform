@@ -1,6 +1,7 @@
 config {
   type: "table",
-  tags: ['standard', 'entity']
+  tags: ['standard', 'entity'],
+  description:`Mentions of a hand picked list from brands commonly occurring in *video_entity*`
 }
 
 with q as (

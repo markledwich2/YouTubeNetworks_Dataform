@@ -1,5 +1,8 @@
 config {
-  type: "table"
+  type: "table",
+  description: '[Not implemented]. Work in progress to create a table with the common subscriber relations between channels. 
+  NOTE: this may be a quick way to get a poor-mans version of chan2vec. But better to integrate that than work on this.
+  '
 }
 
 

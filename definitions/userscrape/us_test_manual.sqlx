@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  description: `A list of user scrape video's that should be tested (e.g. presidential election)`
 }
 
 select $1::string video_id

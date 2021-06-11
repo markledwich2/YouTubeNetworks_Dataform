@@ -1,5 +1,6 @@
 config {
-    type:'view'
+    type:'view',
+    description:`Comparison of recommendation data between those exported by a handful of creators and ours.`
 }
 
 -- traffic export compared

@@ -1,9 +1,9 @@
 config {
   type: "table",
-  dependencies: ['link_detail']
+  dependencies: ['link_detail'],
+  description: `links to YouTube videos from covid related posts (e.g. reddit or parler at the time of writing)`
 }
 
--- links to YouTube videos from posts (e.g. reddit or parler at the time of writing)
 with links as (
   select link_type
        , link_id

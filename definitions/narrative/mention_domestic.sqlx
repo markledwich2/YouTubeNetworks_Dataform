@@ -1,7 +1,7 @@
 config {
   type: "table",
   dependencies: ['video_latest', 'caption'],
-  description: `Mentions of popular q terms to classsify into sub-narratives`
+  description: `Mentions of popular q terms to classify into sub-narratives`
 }
 
 js {

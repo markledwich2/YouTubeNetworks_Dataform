@@ -1,5 +1,6 @@
 config {
-  type: "table"
+  type: "table",
+  description:'A once off import of channels sam collected with just channel_title and subs'
 }
 
 select $1::string channel_id, $2::string channel_title, $4::integer subs

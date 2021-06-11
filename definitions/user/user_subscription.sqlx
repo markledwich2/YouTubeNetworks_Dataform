@@ -2,7 +2,7 @@ config {
   type: "incremental",
   uniqueKey: ['user_id', 'channel_id'],
   tags:['standard'],
-  description:'materializes user subscriptions to make joining faster'
+  description:'User subscriptions. One row for each subscription to make joining fast'
 }
 
 select u.user_id, s.value:Id::string channel_id, u.updated

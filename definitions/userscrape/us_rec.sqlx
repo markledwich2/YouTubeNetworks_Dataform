@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags:["standard", "us"],
-  dependencies:[ "channel_latest", "video_latest" ]
+  dependencies:[ "channel_latest", "video_latest" ],
+  description:`Recommendations seen by personas on videos`
 }
 
 with r1 as (

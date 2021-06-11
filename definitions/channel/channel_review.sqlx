@@ -2,6 +2,11 @@ config {
     type:'table',
     tags:["standard", "review"],
     dependencies: ['channel_review_sam'] // we depend on link_review, but this depends on existing reviewa. It's something we want to refresh manually so not an issue it isn't listed as dependency
+    description:`Reviews from chan2vec and humans at channel granularity.
+    
+    NOTE: 
+    - averages human reviews, which has precedence over chan2vec predictions
+    `
 }
 
 
@@ -131,7 +136,7 @@ with sam_reviews as (
   group by channel_id
 )
 
-  -- as with tags_agg_all, but only humans. used for training other algo's without them influencing eachother
+  -- as with tags_agg_all, but only humans. used for training other algo's without them influencing each-other
    , tags_agg_human as (
   select channel_id
        , array_agg(tag) within group ( order by tag ) as tags

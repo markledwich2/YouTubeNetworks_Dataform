@@ -1,6 +1,7 @@
 config {
   type: 'view',
-  dependencies: ['channel_accepted']
+  dependencies: ['channel_accepted'],
+  description: `Views stats for a channel by day. An aggregation of *video_stats_daily*`
 }
 
 with views_by_day as (

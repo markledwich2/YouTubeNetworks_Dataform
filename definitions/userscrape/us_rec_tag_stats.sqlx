@@ -1,6 +1,7 @@
 config {
   type: "table",
-  tags:['standard', 'us']
+  tags:['standard', 'us'],
+  description:`Recommendation stats at the (persona, to-channel-tag) granularity`
 }
 
 with account_totals as (

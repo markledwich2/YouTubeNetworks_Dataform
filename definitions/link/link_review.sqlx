@@ -1,6 +1,7 @@
 config {
   type: "table",
-  dependencies: ['link_detail', 'channel_latest']
+  dependencies: ['link_detail', 'channel_latest'],
+  description: `Imports channel associations that sam created for use when working out channel tags on new platforms`
 }
 
 

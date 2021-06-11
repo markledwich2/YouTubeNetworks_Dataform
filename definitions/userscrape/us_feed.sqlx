@@ -1,7 +1,8 @@
 config {
   type: "incremental",
   tags:["us", "standard"],
-  dependencies:[ ]
+  dependencies:[ ],
+  description: `Videos seen on a persona's homepage`
 }
 
 select decode(v:account::string, 'MainstreamNews', 'Mainstream News', v:account::string) as account

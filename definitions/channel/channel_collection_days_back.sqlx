@@ -1,7 +1,8 @@
 config {
   type: "table",
   tags: ['standard'],
-  dependencies: ['video_stats_daily', 'channel_views_monthly']
+  dependencies: ['video_stats_daily', 'channel_views_monthly'],
+  description: `Estimates how far back to refresh videos to achieve 90% of new video views`
 }
 
 with views_age as (

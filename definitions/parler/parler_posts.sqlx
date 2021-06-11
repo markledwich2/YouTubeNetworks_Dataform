@@ -1,5 +1,6 @@
 config {
-  type: "table"
+  type: "table",
+  description: 'Parler posts. Imported from the a scaped dataset in Jan 2021'
 }
 
 select v:bodywithurls::string body

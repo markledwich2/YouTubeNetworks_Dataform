@@ -2,7 +2,8 @@ config {
   type: "incremental",
   tags:["standard", "us"],
   uniqueKey: ['account', 'trial_id', 'video_id'],
-  dependencies:[ ]
+  dependencies:[ ],
+  description: `History of videos watched by a persona`
 }
 
 select v:account::string as account

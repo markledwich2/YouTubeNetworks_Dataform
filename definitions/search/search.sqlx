@@ -1,6 +1,7 @@
 config {
     type:'incremental',
-    tags:['standard']
+    tags:['standard'],
+    description:'Recfluence user search history'
 }
 
 select v: Email::string as email

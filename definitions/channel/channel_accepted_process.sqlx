@@ -1,8 +1,11 @@
 config {
   type: "view",
   dependencies: ['channel_latest'],
-  tags: ["standard"]
+  tags: ["standard"],
+  description: `Channels that will have video view data calculated.
+  NOTE: view so we can easily re-use this filter
+  `
 }
--- channels that we are interested in processing data yet, but may not be reviwed for display in final reports
+-- 
 select * from channel_latest
 where (meets_review_criteria and meets_sub_criteria) or platform <> 'YouTube'

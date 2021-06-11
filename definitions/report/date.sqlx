@@ -1,6 +1,7 @@
 config {
     type:'table',
-    tags: ['standard']
+    tags: ['standard'],
+    description: 'Dates since 2017'
 }
 
 with cte_my_date as (

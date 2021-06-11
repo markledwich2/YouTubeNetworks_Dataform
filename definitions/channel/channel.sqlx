@@ -2,7 +2,8 @@ config {
   type: "incremental",
   tags: ["standard", 'core', 'channel'],
   dependencies: ['video_latest', 'channel_review', 'channel_sam_import' ],
-  uniqueKey:['channel_id', 'updated']
+  uniqueKey:['channel_id', 'updated'],
+  description: 'Channel information. Includes a row for each update of the channel'
 }
 
 with cstage as (

@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  description: `Mentions of personal vaccine hesitancy detected by sam's 0-shot learning nlp`
 }
 
 with mentions as (

@@ -1,5 +1,6 @@
 config {
-  type: "view"
+  type: "view",
+  description: 'All videos with no record in *video_extra*'
 }
 
 select video_id, channel_id

@@ -1,6 +1,7 @@
 config {
   type: "table",
-  tags: ["init"]
+  tags: ["init"],
+  description: `Channel reviews from chan2vec. Run when an export from chan2vec is created.`
 }
 
 select to_date(regexp_substr(metadata$filename, 'soft_tags_([0-9]+)', 1, 1, 'e'), 'YYYYMMDD')::date as updated

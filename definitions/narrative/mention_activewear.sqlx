@@ -1,6 +1,7 @@
 config {
   type: "table",
-  dependencies: ['video_latest', 'caption']
+  dependencies: ['video_latest', 'caption'],
+  description: `Mentions of activewear terms`
 }
 
 js {

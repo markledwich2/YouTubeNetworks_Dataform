@@ -1,7 +1,8 @@
 config {
   type: "table",
   tags: ["standard", 'views'],
-  dependencies: ['channel_recs_monthly', 'channel_accepted_process', 'video_stats_monthly']
+  dependencies: ['channel_recs_monthly', 'channel_accepted_process', 'video_stats_monthly'],
+  description: `View and recommendation stats for a channel by month`
 }
 
 with r as (

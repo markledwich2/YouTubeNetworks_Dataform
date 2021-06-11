@@ -1,7 +1,8 @@
 config {
   type: "table",
   dependencies: ['ttube_top_videos'],
-  tags:['standard']
+  tags:['standard'],
+  description:'Stats about the recency of data in channels'
 }
 
 with periods as (

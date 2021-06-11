@@ -1,7 +1,8 @@
 config { 
   type:"table", 
   tags:["standard"],
-  dependencies: ['video_recs_monthly', 'channel_accepted']
+  dependencies: ['video_recs_monthly', 'channel_accepted'],
+  description: 'Recommendation impressions between channels for each month. Aggregates *video_recs_monthly*'
 }
 
 with cr as (

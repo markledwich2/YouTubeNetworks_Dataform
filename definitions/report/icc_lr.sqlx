@@ -1,4 +1,4 @@
-config { type:'view' }
+config { type:'view', description:'ICC between reviewers for the LR' }
 
 select c.channel_id,
        c.channel_title,

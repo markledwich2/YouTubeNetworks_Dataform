@@ -1,7 +1,8 @@
 config {
   type: "table",
   dependencies: ['channel_review_sam_raw'],
-  tags: ["init"]
+  tags: ["init"],
+  description:`Transform chan2vec predictions into the form that user reviews are stored`
 }
 
 with

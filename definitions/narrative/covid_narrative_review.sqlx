@@ -1,6 +1,7 @@
 config {
   type: "table",
-  dependencies: ['reddit_video_collect', 'video_latest', 'caption']
+  dependencies: ['reddit_video_collect', 'video_latest', 'caption'],
+  description: `Mentions from videos with covid related words in title/description/caption`
 }
 
 js {

@@ -1,6 +1,7 @@
 config {
   type: "table",
-  tags: ['init', 'narrative']
+  tags: ['init', 'narrative'],
+  description: 'Election fraud mentions import'
 }
 
 select metadata$filename as file
