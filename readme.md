@@ -33,7 +33,7 @@ If you have been given access, log into [Dataform](https://app.dataform.co/) and
 Recfluence collects YouTube data daily, and loads this into `*_stage` tables in this database. Recfluence then run's this project to update all tables tagged as `standard`. The up to date dta is queried fora  variety of purposes:
 - Ah-hoc SQL for reports
 - Standard Tableau reports
-- Extracting to blob data for use by sites (e.g. data for [transparency.tube](https://transparency.tube) or [recfluence.net](https://recfluence.net/)
+- Extracting to blob data for use by web-sites
 
 
 ## Schema
