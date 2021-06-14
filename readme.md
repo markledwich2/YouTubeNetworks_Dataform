@@ -47,8 +47,8 @@ These are tables with a single `v` column containing JSON. This is where raw dat
 These are tables with the latest data for a historical record. For example, `channel` many rows for the same channel representing what it was at a point in time, and `channel_latest` contains one row per channel with the most recently updated data.
 
 
-### Schema (TODO)
-Documentation for tables and columns are missing 🙄. The intention is to add detailed description for tables and un-intuitive columns in the `.sqlx` files. These appear as tooltips in datagrip and by other tools to create diagrams.
+### Table Help/Descriptions
+Descriptions for tables are defined in `.sqlx` files and saync'ed as comments on tables by dataform (and by the recfluence CLI). These appear as tooltips in datagrip and any good sql tool.
 
 
 ### Example Queries
@@ -74,11 +74,5 @@ order by tags desc
 
 
 ```
-
-*TODO: more examples*
-
-### Tables/Diagram
-
-*TODO: add descriptions for tables/columns and generate helpful diagrams*
 
 
