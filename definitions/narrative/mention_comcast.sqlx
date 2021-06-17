@@ -5,8 +5,9 @@ config {
 }
 
 js {
-  const videoTerms = ['comcast',  'verizon'] // filter to videos matching these
-  const supplimentTerms = ['5g', 'net neutrality', 'brian roberts', 'comcast',  'verizon'] // within above videos, find these mentions
+  const videoTerms = ['comcast',  '5g', 'net neutrality'] // filter to videos matching these
+  const supplimentTerms = ['brian roberts'] // within above videos, find these mentions
+  const parts = ['title', 'caption', 'keyword']
 }
 
 with vids as (
@@ -15,7 +16,7 @@ with vids as (
 )
 , context_vids as (
  with mentions as (
-   ${mentions.mentionsSelect(videoTerms, 'vids')}
+   ${mentions.mentionsSelect(videoTerms, 'vids', parts)}
  )
  select video_id, arrayUniq(arrayFlatten(array_agg(matches))) matches
  from mentions
@@ -23,7 +24,7 @@ with vids as (
 )
 , suppliment as (
   -- use base terms as a filter for videos in the second terms
-  ${mentions.mentionsSelect(supplimentTerms, 'context_vids')}
+  ${mentions.mentionsSelect(videoTerms.concat(supplimentTerms), 'context_vids', parts)}
 )
 select s.*, m.matches as video_tags 
 from suppliment s

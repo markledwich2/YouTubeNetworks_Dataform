@@ -1,7 +1,7 @@
 config {
   type: "table",
   tags:['init', 'narrative'],
-  dependencies:['video_narrative_raw', 'mention_vaccine_personal'],
+  dependencies:['video_narrative_raw', 'mention_vaccine_personal', 'mention_domestic', 'mention_comcast'],
   description:'Metion data intended for viz at the video granularity. `contexts` column can have different schema as need for different narratives'
 }
 
@@ -101,7 +101,8 @@ with m_election_fraud as (
   select * from m_vaccine_dna
   union all
   select * from m_qanon
-
+  union all
+  select * from m_comcast
 )
 , s as (
   select narrative
