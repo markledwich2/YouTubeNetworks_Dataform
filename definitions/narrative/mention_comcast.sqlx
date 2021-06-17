@@ -1,0 +1,30 @@
+config {
+  type: "table",
+  dependencies: ['video_latest', 'caption'],
+  description: `Mentions of terms of interest to comcast`
+}
+
+js {
+  const videoTerms = ['comcast',  'verizon'] // filter to videos matching these
+  const supplimentTerms = ['5g', 'net neutrality', 'brian roberts', 'comcast',  'verizon'] // within above videos, find these mentions
+}
+
+with vids as (
+  select video_id from video_latest
+  where upload_date > '2019-01-01'
+)
+, context_vids as (
+ with mentions as (
+   ${mentions.mentionsSelect(videoTerms, 'vids')}
+ )
+ select video_id, arrayUniq(arrayFlatten(array_agg(matches))) matches
+ from mentions
+ group by video_id
+)
+, suppliment as (
+  -- use base terms as a filter for videos in the second terms
+  ${mentions.mentionsSelect(supplimentTerms, 'context_vids')}
+)
+select s.*, m.matches as video_tags 
+from suppliment s
+join context_vids m on m.video_id = s.video_id

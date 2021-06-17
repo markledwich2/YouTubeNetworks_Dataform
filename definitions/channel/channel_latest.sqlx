@@ -3,7 +3,10 @@ config {
   tags: ['standard', 'review', 'core', 'channel'],
   uniqueKey:['channel_id'],
   dependencies:['channel', 'channel_review', 'video_latest'],
-  description:`The latest row of channel information`
+  description:`The latest row of channel information`,
+  columns: {
+    ideology: '[Deprecated] Converts tagss (M:M) into groups (N:1). This should be a per-report consideration.'
+  }
 }
 
 with cv as (
