@@ -20,3 +20,5 @@ select channel_id, channel_title, reviewer,
        array_contains(t.tag::variant, reviewer_soft_tags) as reviewer_has_tag
  from c
 inner join t
+
+

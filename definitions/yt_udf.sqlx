@@ -114,6 +114,7 @@ regexmatchall(input, '(?<url>https?://(?:[\\w]*@[\\w]*:)?(?<host>[\\w\\-\\.]+)(?
 $$
 
 ---
+-- matches groups
 
 create
 or replace function public.regexMatch(input string, pattern string, flags string) returns object 
@@ -123,6 +124,16 @@ language javascript as
   return res ? res.groups : {};
 }
 return regexMatch(INPUT, PATTERN, FLAGS)
+'
+
+---
+-- matches strings
+create
+or replace function public.regexMatchString(input string, pattern string, flags string) returns string
+language javascript as
+'
+var res = new RegExp(PATTERN, FLAGS).exec(INPUT)
+return Array.isArray(res) ? res[0] : null
 '
 
 ---

@@ -5,27 +5,50 @@ config {
 }
 
 js {
-  const videoTerms = ['comcast',  '5g', 'net neutrality'] // filter to videos matching these
+  const videoTerms = [['comcast', `(?<![\\w]|(\\w\\.))comcast(?![\\w]|(\\.\\w))`],  '5g', 'net neutrality'] // filter to videos matching these
   const supplimentTerms = ['brian roberts'] // within above videos, find these mentions
-  const parts = ['title', 'caption', 'keyword']
+  const parts = ['title', 'caption']
 }
 
-with vids as (
-  select video_id from video_latest
-  where upload_date > '2019-01-01'
+with term_vids as (
+  with comcast_connectivity as (
+          select  $2::string video_id, $3::int offset_seconds
+    from @public.yt_data/import/narratives/comcast_all_mentions.zsl_connectivity_pred_v2.pos_pred.tsv.gz (file_format => tsv_header)
+    )
+   , vids as (
+    select video_id from video_latest
+    where upload_date > '2019-01-01'
+    --and video_id in ('AGZhU6oQUo', 'zqyfCRkayRs', 'VyEf4EBXe8o')
+  )
+  , context_vids as (
+    with mentions as (
+      ${mentions.mentionsSelect(videoTerms, 'vids', parts)}
+    )
+    select video_id, arrayUniq(arrayFlatten(array_agg(matches))) matches
+    from mentions
+    group by video_id
+  )
+  , suppliment as (
+    -- use base terms as a filter for videos in the second terms
+    ${mentions.mentionsSelect(videoTerms.concat(supplimentTerms), 'context_vids', parts)}
+  )
+  select n.value::string narrative
+    , s.video_id
+    , array_append(s.matches, iff(exists(select * from comcast_connectivity c where c.video_id = s.video_id), 'connectiveity', 'non-connectivity')) matches
+    , context, part, offset_seconds
+  from suppliment s
+  join context_vids m  on m.video_id = s.video_id
+  , lateral flatten(input => m.matches) n -- context term matches are narratives, and suppliment matches are mention tags
 )
-, context_vids as (
- with mentions as (
-   ${mentions.mentionsSelect(videoTerms, 'vids', parts)}
- )
- select video_id, arrayUniq(arrayFlatten(array_agg(matches))) matches
- from mentions
- group by video_id
+, import_vids as (
+    with m2 as (
+        select 'Jews Control Media' narrative, $2::string video_id, $3::int offset_seconds, $10::string caption
+        from @public.yt_data/import/narratives/jewish_media_all_mentions.zsl_antisem_pred_v1.pos_pred.tsv.gz (file_format => tsv_header)
+    )
+  select narrative, video_id, null matches, caption context, 'caption' part, offset_seconds
+  from m2
 )
-, suppliment as (
-  -- use base terms as a filter for videos in the second terms
-  ${mentions.mentionsSelect(videoTerms.concat(supplimentTerms), 'context_vids', parts)}
+, u as (
+  select * from term_vids union all select * from import_vids
 )
-select s.*, m.matches as video_tags 
-from suppliment s
-join context_vids m on m.video_id = s.video_id
+select * from u

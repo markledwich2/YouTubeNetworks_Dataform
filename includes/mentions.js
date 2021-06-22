@@ -3,7 +3,13 @@ const termSql = (col, terms) => {
     const termExpression = terms.filter((t) => Array.isArray(t))
     const termStrings = terms.filter((t) => !Array.isArray(t))
 
-    const termESql = `array_compact(array_construct(${termExpression.map(([t, e]) => `iff(${e(col)}, '${t}', null)`)}))`
+    
+
+    const termESql =`array_compact(array_construct(${termExpression.map(([t, e]) => 
+      `iff(${typeof(e) == 'string' ? 
+        `regexMatchString(${col}, '${e.replace(/'/g, "''").replace(/\\/g, '\\\\')}', 'i') is not null` 
+        : e(col)}
+        , '${t}', null)`)}))`
     const termSSql = `arrayuniq(arrayLower(arrayReplace(regexmatchall(${col}, ${`'\\b(${
       termStrings.map(t => t.replace(/'/g, "''").replace(' ', '\\s*')).join('|')
     })\\b'`.replace(/\\/g, '\\\\')}, 'i'), '\\\\s+', '', '')))`
