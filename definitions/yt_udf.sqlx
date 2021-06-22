@@ -23,7 +23,17 @@ OR REPLACE FUNCTION public.arrayUniq(items array) RETURNS array LANGUAGE JAVASCR
 '
 return ITEMS ? [...new Set(ITEMS)] : undefined
 '
+---
+create
+or replace function public.arrayGroup(items array) returns object language javascript as
+'
+return ITEMS ? (ITEMS || []).reduce((r,a) => {
+  r[a] = r[a] || 0
+  r[a]++
+  return r
+}, {}) : undefined
 
+'
 ---
 
 CREATE
