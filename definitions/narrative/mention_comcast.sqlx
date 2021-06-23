@@ -5,8 +5,15 @@ config {
 }
 
 js {
-  const videoTerms = [['comcast', `(?<![\\w]|(\\w\\.))comcast(?![\\w]|(\\.\\w))`],  '5g', 'net neutrality'] // filter to videos matching these
-  const supplimentTerms = ['brian roberts'] // within above videos, find these mentions
+  const terms = [
+    ['comcast', /(?<![\w]|(\w\.))comcast(?![\w]|(\.\w))/i],  
+    '5g', 
+    'net neutrality', 
+    // roberts in a caption with comcast
+    ['Brian Roberts', c=> `${mentions.termMatch(c, 'roberts')} and ${mentions.termMatch(c, /(?<![\w]|(\w\.))comcast(?![\w]|(\.\w))/i)}`], 
+    // any exec mentions with comcast
+    ['Comcast Exec', c=> `${mentions.termMatch(c, /\b(ceo|executive|cfo|leadership|roberts|robert|clo|cavanagh|reid|armstrong|cohen)\b/i)} and ${mentions.termMatch(c, /(?<![\w]|(\w\.))comcast(?![\w]|(\.\w))/i)}`], 
+  ] // filter to videos matching these
   const parts = ['title', 'caption']
 }
 
@@ -18,27 +25,17 @@ with term_vids as (
    , vids as (
     select video_id from video_latest
     where upload_date > '2019-01-01'
-    --and video_id in ('AGZhU6oQUo', 'zqyfCRkayRs', 'VyEf4EBXe8o')
+    --and video_id in ('AGZhU6oQUo', 'zqyfCRkayRs', 'VyEf4EBXe8o', 'mipSPvvz05A', 'I9_H4ZnHuoI', '9aWT6lznOhI', '7uQuHU6DHB8')
   )
-  , context_vids as (
-    with mentions as (
-      ${mentions.mentionsSelect(videoTerms, 'vids', parts)}
-    )
-    select video_id, arrayUniq(arrayFlatten(array_agg(matches))) matches
-    from mentions
-    group by video_id
-  )
-  , suppliment as (
-    -- use base terms as a filter for videos in the second terms
-    ${mentions.mentionsSelect(videoTerms.concat(supplimentTerms), 'context_vids', parts)}
+  , mentions as (
+      ${mentions.mentionsSelect(terms, 'vids', parts)}
   )
   select n.value::string narrative
     , s.video_id
-    , array_append(s.matches, iff(exists(select * from comcast_connectivity c where c.video_id = s.video_id), 'connectiveity', 'non-connectivity')) matches
+    , array_append(s.matches, iff(exists(select * from comcast_connectivity c where c.video_id = s.video_id), 'connectivity', 'non-connectivity')) matches
     , context, part, offset_seconds
-  from suppliment s
-  join context_vids m  on m.video_id = s.video_id
-  , lateral flatten(input => m.matches) n -- context term matches are narratives, and suppliment matches are mention tags
+  from mentions s
+  , lateral flatten(input => s.matches) n -- context term matches are narratives, and suppliment matches are mention leywords
 )
 , import_vids as (
     with m2 as (

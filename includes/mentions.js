@@ -1,27 +1,54 @@
+var escapeRe = (r) => r.replace(/'/g, "''").replace(/\\/g, '\\\\')
+var isRe = (r) => typeof(r) == "object" && r.exec != null
 
-const termSql = (col, terms) => {
-    const termExpression = terms.filter((t) => Array.isArray(t))
-    const termStrings = terms.filter((t) => !Array.isArray(t))
+var termMatch = (col, e) => {
+  if(typeof(e) == 'string') return `regexMatchString(${col}, '${escapeRe(`\\b${e.replace(' ', '\\s*')}\\b`)}', 'i') is not null`
+  if(isRe(e)) return `regexMatchString(${col}, '${escapeRe(e.source)}', '${e.flags}') is not null`
+  if(Array.isArray(e)) return e.map(e => termMatch(col, e)).join(' or ')
+  if (e instanceof Function) return e(col)
+	else throw `unsupported match expression: {e}`
+}
 
+
+/*
+ returns SQL will will returns in an array of matching terms in *col*.
+ 
+ *terms* can be on the folllowing formats. Consider the following text in the *myCol* column:
+    'Milo and Otis was a movie about a cat and a dog. I feel sheepish for watching'.
+
+	// Simple list of words. Resutls in ['dog', 'cat']. Sheep not included because this matches on word boundaries.
+  // If you need a regular expression, use one of the bellow term formats
+	termMatches('myCol', ['dog', 'cat', 'sheep']) 
+  
+  // Provide multiple words match with terms. Result ['animal', 'Milo']. This will *or* the terms
+	termMatches('myCol', [['animal', ['dog', 'cat', 'sheep']], 'Milo', 'Bob']) // returns ['animal', 'Milo']
+  
+  // Ptofive an expression to match with terms
+  termMatches('myCol', [['catsAndDogs', c => `${termMatch(c, 'cats')} and ${termMatch(c, 'dogs')`]]) // returns ['catsAndDogs']
+  
+  // Provide either words, or term matches with regular extpressons
+  termMatches('myCol', [['dog', ['sheep', /sheep(ish)?/]]]) // returns ['dog', 'sheep']
+*/
+var termMatches = (col, terms) => {
+    const namedTerms = terms.filter((t) => Array.isArray(t))
+    const namedTermsSql = namedTerms.length ? `array_compact(array_construct(${
+    	namedTerms.map(([t, e]) => `iff(${termMatch(col, e)}, '${t}', null)`)
+    }))` : null
     
-
-    const termESql =`array_compact(array_construct(${termExpression.map(([t, e]) => 
-      `iff(${typeof(e) == 'string' ? 
-        `regexMatchString(${col}, '${e.replace(/'/g, "''").replace(/\\/g, '\\\\')}', 'i') is not null` 
-        : e(col)}
-        , '${t}', null)`)}))`
-    const termSSql = `arrayuniq(arrayLower(arrayReplace(regexmatchall(${col}, ${`'\\b(${
-      termStrings.map(t => t.replace(/'/g, "''").replace(' ', '\\s*')).join('|')
-    })\\b'`.replace(/\\/g, '\\\\')}, 'i'), '\\\\s+', '', '')))`
-
-    return `array_cat(${termESql}, ${termSSql})`
+    const plainTerms = terms.filter((t) => !Array.isArray(t))
+    const plainTermSql = plainTerms.length ? `arrayuniq(arrayLower(arrayReplace(regexmatchall(${col}, ${`'\\b(${
+      plainTerms.map(t => t.replace(/'/g, "''").replace(' ', '\\s*')).join('|')
+    })\\b'`.replace(/\\/g, '\\\\')}, 'i'), '\\\\s+', '', '')))` : null
+    
+    const arrayCatSql = (a) => a.length > 1 ?  `array_cat(${a.join(',')})` : a.join('')
+    return arrayCatSql([plainTermSql, namedTermsSql].filter(t => t))
   }
 
 function select_context(terms, table, col, part, expressions) {
   part = part || col
   var allExpressions = [
     'video_id', 
-    `${termSql(col, terms)} matches`,
+    `${termMatches(col, terms)} matches`,
     `${col} context`,
     `'${part}' part`
     ].concat(expressions ? expressions : [])
@@ -51,8 +78,6 @@ function mentionsSelect(terms, video_table, parts) {
   )`
   }
 
-
-
   return `
 (
   with mentions_select_vid as (
@@ -69,4 +94,4 @@ function mentionsSelect(terms, video_table, parts) {
 `
 }
 
-module.exports = { mentionsSelect, arraySql };
+module.exports = { mentionsSelect, arraySql, termMatch };
