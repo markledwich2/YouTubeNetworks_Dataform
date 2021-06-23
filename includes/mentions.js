@@ -66,31 +66,31 @@ function mentionsSelect(terms, video_table, parts) {
   video_table = video_table || 'video_latest'
 
   const partToSelect = {
-    caption: select_context(terms, 'mentions_select_cap', 'caption', null, ['offset_seconds::int offset_seconds']),
-    title: select_context(terms, 'mentions_select_vid', 'video_title', 'title', ['null offset_seconds']),
-    description: select_context(terms, 'mentions_select_vid', 'description', null, ['null offset_seconds']),
-    keyword: `  (
-    with mentions_select_kw as (
-      select video_id, video_title, k.value::string keyword
-      from mentions_select_vid, lateral flatten(input => keywords) k
-    )
-    ${select_context(terms, 'mentions_select_kw', 'keyword', null, ['null offset_seconds'])}
-  )`
+    caption: select_context(terms, `mention_cap_${video_table}`, 'caption', null, ['offset_seconds::int offset_seconds']),
+    title: select_context(terms, `mention_vid_${video_table}`, 'video_title', 'title', ['null offset_seconds']),
+    description: select_context(terms, `mention_vid_${video_table}`, 'description', null, ['null offset_seconds']),
+    keyword: `(
+with mention_kwd_${video_table} as (
+  select video_id, video_title, k.value::string keyword
+  from mention_vid_${video_table}, lateral flatten(input => keywords) k
+)
+${select_context(terms, `mention_kwd_${video_table}`, 'keyword', null, ['null offset_seconds'])}
+)`
   }
 
   return `
-(
-  with mentions_select_vid as (
-      select v.video_id, l.video_title, l.description, l.keywords
-      from ${video_table} v
-      join video_latest l on l.video_id = v.video_id
-  )
-  , mentions_select_cap as (
-      select s.video_id, s.caption, offset_seconds from caption s
-      join mentions_select_vid v on v.video_id = s.video_id -- filter via vid table
-  )
-  ${parts.map(p => partToSelect[p]).join('\n union all \n')}
+-- start mentionsSelect (${video_table})
+with mention_vid_${video_table} as (
+    select v.video_id, l.video_title, l.description, l.keywords
+    from ${video_table} v
+    join video_latest l on l.video_id = v.video_id
 )
+, mention_cap_${video_table} as (
+    select s.video_id, s.caption, offset_seconds from caption s
+    join mention_vid_${video_table} v on v.video_id = s.video_id -- filter via vid table
+)
+${parts.map(p => partToSelect[p]).join('\n union all \n')}
+-- end mentionsSelect (${video_table})
 `
 }
 
