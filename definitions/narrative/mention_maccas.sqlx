@@ -1,0 +1,31 @@
+config {
+  type: "table",
+  dependencies: ['video_latest', 'caption'],
+  description: `Mentions of Macdonald's`
+}
+
+js {
+  const parts = ['title', 'description', 'caption']
+}
+
+with vids as (select * from video_latest where upload_date >= '2019-01-01')
+, all_mentions as (${mentions.mentionsSelect([[`maccas`, /\b(Mc Donald's|McDonald's|Macca'?s|Mickey D('s)?|Mickey Deez|Golden Arches)\b/i]], 'vids', parts)})
+, maccas_vids as (select distinct video_id from all_mentions)
+, sub_mentions as (${mentions.mentionsSelect([
+  ['maccas-ceo',  [/\b(ceo|easterbrook)\b/i]],
+  ['maccas-veg',  [/\b(veg|vegetarian|vegan)\b/i]],
+  ['maccas-union', [/\b(union|strike|striking)\b/i]]
+], 'maccas_vids', parts)})
+, unhealthy_mentions as (
+    with m2 as (
+        select $2::string video_id, $3::int offset_seconds, $10::string caption
+        from @public.yt_data/import/narratives/mcdonalds_all_mentions.zsl_unhealthy_pred_v1.pred_095.tsv.gz (file_format => tsv_header)
+    )
+  select video_id, array_construct('maccas-unhealthy') matches, caption context, 'caption' part, offset_seconds
+  from m2
+)
+, u as (
+  ${util.union(['all_mentions', 'sub_mentions', 'unhealthy_mentions'])}
+)
+select n.value::string narrative, u.*
+  from u, lateral flatten(input => u.matches) n

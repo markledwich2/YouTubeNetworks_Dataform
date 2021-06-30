@@ -32,7 +32,7 @@ var termMatch = (col, e) => {
 var termMatches = (col, terms) => {
     const namedTerms = terms.filter((t) => Array.isArray(t))
     const namedTermsSql = namedTerms.length ? `array_compact(array_construct(${
-    	namedTerms.map(([t, e]) => `iff(${termMatch(col, e)}, '${t}', null)`)
+    	namedTerms.map(([t, e]) => `iff(${termMatch(col, e)}, '${t.replace(/'/g, "''")}', null)`)
     }))` : null
     
     const plainTerms = terms.filter((t) => !Array.isArray(t))
