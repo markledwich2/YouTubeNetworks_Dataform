@@ -1,0 +1,33 @@
+config {
+  type: "table",
+  dependencies: ['video_latest', 'caption'],
+  description: `Mentions of Macdonald's`
+}
+
+js {
+  const parts = ['title', 'description', 'caption']
+  const maccasRe = /\b(Mc Donald's|McDonald's|Macca'?s|Mickey D('s)?|Mickey Deez|Golden Arches)\b/i
+}
+
+with vids as (select * from video_latest where upload_date >= '2019-01-01')
+, all_mentions as (${mentions.mentionsSelect([[`maccas`, maccasRe]], 'vids', parts)})
+  , vid_caption_stats as (select s.video_id, count(*) captions
+                          from caption s
+                                 join vids v on v.video_id=s.video_id
+                          group by 1)
+  , vid_mention_stats as (
+  with g as (
+    select m.video_id
+         , count_if(part in ('title','description')) title_mentions
+         , count_if(part='caption') caption_mentions
+    from all_mentions m
+           join vid_caption_stats s on s.video_id=m.video_id
+    group by 1
+  )
+  select g.*, s.captions
+  from g
+         join vid_caption_stats s on s.video_id=g.video_id
+)
+select m.*, title_mentions, caption_mentions, captions
+from all_mentions m
+       left join vid_mention_stats s on s.video_id=m.video_id
