@@ -1,0 +1,6 @@
+config {
+  type: "table"
+}
+
+  select $2::string video_id, $3::int offset_seconds, $10::string caption
+        from @public.yt_data/import/narratives/qanon_military_mentions.zsl_military_control_v1.pred_095.tsv.gz (file_format => tsv_header)
