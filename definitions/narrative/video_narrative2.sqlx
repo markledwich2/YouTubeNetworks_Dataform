@@ -6,7 +6,20 @@ config {
 }
 
 js {
-  const union = (tables) => tables.map(t => `select * from ${t}`).join('\nunion all ')
+  const union = (selects) => selects.join('\nunion all ')
+  const selectTable = (t) => `select * from ${t}`
+  const selectMention = (table) => `
+        select narrative
+       , video_id
+       , matches keywords
+       , offset_seconds
+       , context caption
+       , part
+       , matches tags
+       , null video_tags
+       , null video_tags_meta
+       , null extra
+      from ${table}`
 }
 
 with m_election_fraud as (
@@ -84,32 +97,6 @@ with m_election_fraud as (
   where array_contains('QAnon'::variant,tags)
     and upload_date>='2019-01-01'
     )
-    ,  m_comcast as (
-        select narrative
-       , video_id
-       , matches keywords
-       , offset_seconds
-       , context caption
-       , part
-       , matches tags
-       , null video_tags
-       , null video_tags_meta
-       , null extra
-      from mention_comcast
-    )
-        ,  m_maccas as (
-        select narrative
-       , video_id
-       , matches keywords
-       , offset_seconds
-       , context caption
-       , part
-       , null tags
-       , null video_tags
-       , null video_tags_meta
-       , null extra
-      from mention_maccas
-    )
     , m_qmilitary as (
         select 'QAnon - Military in Control' narrative
        , video_id
@@ -124,7 +111,16 @@ with m_election_fraud as (
       from mention_qmilitary
     )
   , u as (
-    ${union(['m_election_fraud', 'm_vaccine_personal', 'm_vaccine_dna', 'm_qanon', 'm_comcast', 'm_maccas', 'm_qmilitary'])}
+    ${union([
+      selectTable('m_election_fraud'), 
+      selectTable('m_vaccine_personal'), 
+      selectTable('m_vaccine_dna'), 
+      selectTable('m_qanon'), 
+      selectMention('mention_comcast'),
+      selectMention('mention_maccas'),
+      selectMention('mention_ua'), 
+      selectTable('m_qmilitary'),
+    ])}
 )
 , s as (
   select narrative

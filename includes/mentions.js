@@ -4,7 +4,7 @@ var isRe = (r) => typeof(r) == "object" && r.exec != null
 var termMatch = (col, e) => {
   if(typeof(e) == 'string') return `regexMatchString(${col}, '${escapeRe(`\\b${e.replace(' ', '\\s*')}\\b`)}', 'i') is not null`
   if(isRe(e)) return `regexMatchString(${col}, '${escapeRe(e.source)}', '${e.flags}') is not null`
-  if(Array.isArray(e)) return e.map(e => termMatch(col, e)).join(' or ')
+  if(Array.isArray(e)) return `(${e.map(e => termMatch(col, e)).join(' or ')})`
   if (e instanceof Function) return e(col)
 	else throw `unsupported match expression: {e}`
 }
