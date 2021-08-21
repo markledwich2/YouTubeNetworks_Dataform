@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags:['standard'],
+  tags:['standard', 'core'],
   uniqueKey:['comment_id'],
   description:'A comment/reply on a video'
 }

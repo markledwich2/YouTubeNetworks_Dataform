@@ -30,7 +30,7 @@ with r1 as (
     qualify row_number() over (partition by channel_title order by greatest(channel_views, channel_video_views) desc)=1
 )
    , r2 as (
-  select decode(r1.account, 'Mainstream News', 'MainstreamNews', r1.account) account
+  select decode(r1.account, 'MainstreamNews', 'Mainstream News', r1.account) account
        , from_channel_title
        , coalesce(fc_id.channel_id, from_channel_id) from_channel_id
        , from_video_id
