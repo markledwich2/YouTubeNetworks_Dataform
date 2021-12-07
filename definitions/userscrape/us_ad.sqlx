@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags:["us", "standard"],
+  tags:["us"],
   uniqueKey: ['account', 'trial_id', 'video_id'],
   dependencies:[ "us_watch" ],
   description: 'Ads seen by personas'
