@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  tags: ['standard'],
+  tags: ['link'],
   dependencies:['link', 'channel_latest', 'video_latest'],
   uniqueKey: ['url', 'channel_id_from', 'video_id_from', 'post_id_from'],
   description: `Details about links to channels and videos on supported platforms`

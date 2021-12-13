@@ -1,9 +1,9 @@
 config {
   type: "incremental",
-  tags:['standard'],
+  tags:['link'],
   dependencies:['channel_latest', 'video_latest', 'yt_udf'],
   uniqueKey:['channel_id_from', 'video_id_from', 'post_id_from', 'url', 'platform_from'],
-  description:`Url's from channel & video description, parler/reddit posts.
+  description:`Url's from channel & video description, reddit posts.
   TODO: we should look in comments too
   `
 }
@@ -36,28 +36,10 @@ platform_inc as (
   select platform_from, max(updated) max_updated
   from link
   group by 1
-),
-
-  post_inc as (
-  select p.* from post p
-  ${ when(incremental(), `left join platform_inc u on p.platform = u.platform_from  where p.updated > coalesce(max_updated, '0000-01-01'::timestamp_ntz)`) }
-)
-
-, post_q as (
-select post_id post_id_from
-      , lower(m.value:host::string) host
-      , m.value:"url"::string url
-      , updated
-      , platform platform_from
-from post_inc p
-  , table (flatten(matchurls(body))) m
 )
   , u as (
   select channel_id_from, video_id_from, null post_id_from, host, url, platform_from, updated
   from desc_links
-  union all
-  select null, null, post_id_from, host, url, p.platform_from, updated
-  from post_q p
 )
 select *
      , hosttoplatform(host) platform_to
