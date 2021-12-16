@@ -156,21 +156,6 @@ create or replace function public.fromUnixTs(ts int)
   returns timestamp_ntz as 
   $$ dateadd('s', ts, '1970-01-01') $$
 
-
----
-create or replace function public.covidWords(input string)
-returns array as
-$$
-select regexmatchall(input, '\\b(covid|coronavirus|SARS-CoV-2|vaccine|Wuhan flu|China virus|vaccinated|Pfizer|Moderna|BioNTech|AstraZeneca|Johnson \& Johnson|CDC|world health organization|Herd immunity|corona virus|kovid|covet|coven)\\b', 'i')
-$$
-
----
-create or replace function public.hasCovidWords(input string)
-returns boolean as
-$$
-select array_size(covidWords(input)) > 0 
-$$
-
 ---
 create  or replace function public.arrayflatten(items array) returns array
   language javascript as
