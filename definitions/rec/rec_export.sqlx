@@ -5,9 +5,8 @@ config {
 }
 
 with e as (
-    select v:FromVideoId::string as from_video_id
-         , v:FromChannelId::string as from_channel_id
-         , v:FromChannelTitle::string as from_channel_title
+    select
+        v:FromVideoId::string as from_video_id
          , v:ToChannelTitle::string as to_channel_title
          , v:"From"::date as from_date
          , v:"To"::date as to_date
@@ -19,15 +18,13 @@ with e as (
          , v:"Views"::int as rec_views
          , v:AvgViewDuration::time as avg_view_duration
          , v:WatchTimeHrsTotal::double as watch_hrs_total
-         , row_number() over (partition by to_channel_title, from_date, from_video_id order by from_date) as age
+         , row_number() over (partition by to_channel_title, from_date, source order by from_date) as age
     from rec_export_stage)
    , s as (
     select e.*
          , tc.channel_id as to_channel_id
-         , fc.channel_id is null as from_channel_missing
     from e
              left join channel_latest tc on e.to_channel_title = tc.channel_title and tc.meets_review_criteria
-             left join channel_latest fc on e.from_channel_id = fc.channel_id and fc.meets_review_criteria
     where e.age = 1
 )
 select *
