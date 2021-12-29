@@ -6,36 +6,37 @@ config {
 }
 
 with r as (
-  select from_channel_id as channel_id
-       , rec_month
-       , sum(relevant_impressions) as relevant_impressions
-       , sum(relevant_impressions_in) as relevant_impressions_in
-  from channel_recs_monthly
-       -- for channel stats. Exclude recs to/from outside channels, otherwise the net impressions are unbalanced
-  where exists(select c.channel_id from channel_accepted_process c where c.channel_id=to_channel_id)
-    and exists(select c.channel_id from channel_accepted_process c where c.channel_id=from_channel_id)
-  group by 1, 2
+    select from_channel_id              as channel_id
+         , rec_month
+         , sum(relevant_impressions)    as relevant_impressions
+         , sum(relevant_impressions_in) as relevant_impressions_in
+    from channel_recs_monthly
+         -- for channel stats. Exclude recs to/from outside channels, otherwise the net impressions are unbalanced
+    where exists(select c.channel_id from channel_accepted_process c where c.channel_id = to_channel_id)
+      and exists(select c.channel_id from channel_accepted_process c where c.channel_id = from_channel_id)
+    group by 1, 2
 )
    , channel_views as (
-  select channel_id, month, sum(views) as video_views
-  from video_stats_monthly
-  group by channel_id, month
+    select channel_id, month, sum(views) as video_views
+    from video_stats_monthly
+    group by channel_id, month
 )
    , s as (
-  select r.rec_month as month
-       , cv.video_views -- video views for each month. Can be aggregated
-       , cv.video_views*c.relevance as relevant_video_views
-       , c.*
-       , r.relevant_impressions
-       , r.relevant_impressions_in
-       , (relevant_impressions_in/nullif(relevant_impressions, 0)-1) as relevant_impressions_advantage
-       , subs>10000 or channel_lifetime_daily_views>(
-                                      select avg(channel_lifetime_daily_views/subs)
-                                      from channel_accepted_process
-                                      where subs>0
-                                    )*10000 as meets_subsviews_criteria
-  from channel_accepted_process c
-         left join r on r.channel_id=c.channel_id
-         left join channel_views cv on r.channel_id=cv.channel_id and r.rec_month=cv.month
+    select cv.month                                                        as month
+         , cv.video_views -- video views for each month. Can be aggregated
+         , cv.video_views * c.relevance                                    as relevant_video_views
+         , c.*
+         , r.relevant_impressions
+         , r.relevant_impressions_in
+         , (relevant_impressions_in / nullif(relevant_impressions, 0) - 1) as relevant_impressions_advantage
+         , subs > 10000 or channel_lifetime_daily_views > (
+                                                              select avg(channel_lifetime_daily_views / subs)
+                                                              from channel_accepted_process
+                                                              where subs > 0
+                                                          ) * 10000        as meets_subsviews_criteria
+    from channel_accepted_process c
+             left join channel_views cv on c.channel_id = cv.channel_id
+             left join r on r.channel_id = c.channel_id and r.rec_month = cv.month
 )
-select * from s
+select *
+from s

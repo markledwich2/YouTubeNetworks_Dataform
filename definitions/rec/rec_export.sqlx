@@ -4,28 +4,31 @@ config {
   description: 'Real recommendation stats from creators.'
 }
 
-with e as (
-    select
-        v:FromVideoId::string as from_video_id
-         , v:ToChannelTitle::string as to_channel_title
-         , v:"From"::date as from_date
-         , v:"To"::date as to_date
-         , v:Source::string as source
-         , v:SourceType::string as source_type
-         , v:FromVideoTitle::string as from_video_title
-         , v:Impressions::int as impressions
-         , v:ImpressionClickThrough::double as impression_click_through
-         , v:"Views"::int as rec_views
-         , v:AvgViewDuration::time as avg_view_duration
-         , v:WatchTimeHrsTotal::double as watch_hrs_total
-         , row_number() over (partition by to_channel_title, from_date, source order by from_date) as age
-    from rec_export_stage)
-   , s as (
-    select e.*
-         , tc.channel_id as to_channel_id
-    from e
-             left join channel_latest tc on e.to_channel_title = tc.channel_title and tc.meets_review_criteria
-    where e.age = 1
+with title_to_channel as (
+    select channel_id, channel_title
+    from channel_latest
+    where platform = 'YouTube'
+        qualify row_number() over (partition by channel_title order by channel_views desc nulls last) = 1
 )
-select *
-from s
+, s as (
+  select v:FromVideoId::string                                                              from_video_id
+     --, v:FromChannelTitle::string                                                         from_channel_title
+     , v:ToChannelTitle::string                                                           to_channel_title
+     , v:"From"::date                                                                     from_date
+     , v:"To"::date                                                                       to_date
+     , v:SourceType::string                                                               source_type
+     , v:FromVideoTitle::string                                                           from_video_title
+     , v:Impressions::int                                                                 impressions
+     , v:ImpressionClickThrough::double                                                   impression_click_through
+     , v:Views::int views
+     , v:"Views"::int                                                                     rec_views
+     , v:AvgViewDuration::time                                                            avg_view_duration
+     , v:WatchTimeHrsTotal::double                                                        watch_hrs_total
+     , decode(source_type, 'Rec', 'Suggested videos', 'Cat', v:Source::string, 'Unknown') source
+     , substr(md5_hex(to_channel_title), 1, 3)                                            channel_hash
+     , tc.channel_id                                                                      to_channel_id
+from rec_export_stage es
+         left join title_to_channel tc on tc.channel_title = v:ToChannelTitle
+    qualify row_number() over (partition by to_channel_title, from_date, v:Source order by from_date) = 1
+)
+select * from s
