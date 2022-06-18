@@ -25,14 +25,15 @@ with vd_filtered as (
   from vd_filtered
      , lateral flatten(array_construct(
       --object_construct('range', 1) -- this latest day is always incomplete. don't confuse people with partial results.by comparing days
-    object_construct('range', 1, 'offset', -1)
-    , object_construct('range', 1, 'offset', -2)
-    , object_construct('range', 1, 'offset', -3)
-    , object_construct('range', 1, 'offset', -4)
-    , object_construct('range', 1, 'offset', -5)
-    , object_construct('range', 1, 'offset', -6)
-    , object_construct('range', 1, 'offset', -7)
-    , object_construct('range', 7, 'offset', -1)
+  -- daily stats no longer makes sense now we are refreshing weekly
+    -- object_construct('range', 1, 'offset', -1)
+    -- , object_construct('range', 1, 'offset', -2)
+    -- , object_construct('range', 1, 'offset', -3)
+    -- , object_construct('range', 1, 'offset', -4)
+    -- , object_construct('range', 1, 'offset', -5)
+    -- , object_construct('range', 1, 'offset', -6)
+    -- , object_construct('range', 1, 'offset', -7)
+      object_construct('range', 7, 'offset', -1)
     , object_construct('range', 30, 'offset', -1)
     , object_construct('range', 365, 'offset', -1)
     )) f
